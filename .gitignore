@@ -1,0 +1,82 @@
+# --- General OS / Editor ---
+.DS_Store
+Thumbs.db
+*.swp
+*.swo
+*.log
+*.tmp
+*.bak
+*.orig
+.idea/
+*.iml
+.project
+.classpath
+.settings/
+.vscode/
+
+# --- Java / Spring / Build Tools ---
+*.class
+*.jar
+*.war
+*.ear
+
+# Maven
+target/
+pom.xml.tag
+pom.xml.releaseBackup
+pom.xml.versionsBackup
+pom.xml.next
+release.properties
+dependency-reduced-pom.xml
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+# If you prefer to commit the wrapper JAR, uncomment the next line
+#!.mvn/wrapper/maven-wrapper.jar
+
+# Gradle
+.gradle/
+build/
+!gradle/wrapper/gradle-wrapper.jar
+
+# IDE build outputs
+out/
+bin/
+
+# JVM crash logs
+hs_err_pid*
+replay_pid*
+
+# --- Node / React ---
+node_modules/
+dist/
+build/
+.cache/
+.parcel-cache/
+.eslintcache
+.stylelintcache
+.turbo/
+coverage/
+
+# Framework/platform
+.next/
+.nuxt/
+.svelte-kit/
+storybook-static/
+.vercel/
+.netlify/
+
+# Env files (keep example)
+.env
+.env.*
+!.env.example
+
+# Package managers
+package-lock.json
+pnpm-lock.yaml
+yarn.lock
+.pnpm-store/
+**/.pnpm-debug.log*
+**/npm-debug.log*
+**/yarn-error.log*
+**/yarn-debug.log*
+
