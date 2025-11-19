@@ -1,0 +1,88 @@
+# ==========================
+# BACKEND (Spring Boot) .gitignore
+# ==========================
+
+# Maven build output
+target/
+!.mvn/wrapper/maven-wrapper.jar
+!**/src/main/**/target/
+!**/src/test/**/target/
+
+# Gradle (if ever needed)
+.gradle/
+build/
+!**/src/main/**/build/
+!**/src/test/**/build/
+
+# Spring Boot
+HELP.md
+spring-boot-*.log
+
+# Environment variables (backend specific)
+.env
+.env.local
+application-local.yml
+application-local.properties
+
+# IDE - IntelliJ IDEA
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# IDE - Eclipse
+.apt_generated
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache
+bin/
+
+# IDE - NetBeans
+/nbproject/private/
+/nbbuild/
+/dist/
+/nbdist/
+/.nb-gradle/
+
+# IDE - VS Code
+.vscode/
+*.code-workspace
+
+# Logs
+logs/
+*.log
+*.log.*
+spring.log
+
+# Testing
+.test/
+*.test
+
+# Database
+*.db
+*.sqlite
+*.sqlite3
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~.nib
+
+# Package Files
+*.jar
+*.war
+*.nar
+*.ear
+*.zip
+*.tar.gz
+*.rar
+!.mvn/wrapper/maven-wrapper.jar
+
+# OS Files
+.DS_Store
+Thumbs.db

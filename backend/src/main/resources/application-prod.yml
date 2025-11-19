@@ -1,0 +1,68 @@
+spring:
+  # Production database configuration
+  # Use separate environment variables for database connection
+  datasource:
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:anok_db}
+    username: ${DB_USER:postgres}
+    password: ${DB_PASSWORD:postgres}
+    driver-class-name: org.postgresql.Driver
+    hikari:
+      maximum-pool-size: 10
+      minimum-idle: 2
+      connection-timeout: 30000
+
+  jpa:
+    hibernate:
+      ddl-auto: validate
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+        dialect: org.hibernate.dialect.PostgreSQLDialect
+
+  # Flyway migrations enabled
+  flyway:
+    enabled: true
+    baseline-on-migrate: true
+    locations: classpath:db/migration
+
+# Production server configuration
+server:
+  port: ${PORT:8080}
+  servlet:
+    context-path: /api
+  error:
+    include-message: always
+    include-stacktrace: never
+
+# Logging for production
+logging:
+  level:
+    com.anok: INFO
+    org.springframework.web: WARN
+    org.hibernate: WARN
+
+# CORS configuration for production
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173}
+  allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
+  allowed-headers: "*"
+  allow-credentials: true
+
+# OpenAPI/Swagger Documentation (disabled in production by default)
+springdoc:
+  api-docs:
+    enabled: ${ENABLE_API_DOCS:false}
+  swagger-ui:
+    enabled: ${ENABLE_SWAGGER_UI:false}
+
+# Actuator for production (basic health status only)
+management:
+  endpoint:
+    health:
+      show-details: when-authorized
+      show-components: never
+  endpoints:
+    web:
+      exposure:
+        include: health
