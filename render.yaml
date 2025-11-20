@@ -36,6 +36,9 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /api/actuator/health
+    buildFilter:
+      paths:
+        - backend/**
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
@@ -75,6 +78,9 @@ services:
     branch: develop
     buildCommand: cd webapp && npm install && npm run build
     staticPublishPath: ./webapp/dist
+    buildFilter:
+      paths:
+        - webapp/**
     envVars:
       - key: VITE_API_URL
         value: https://anok-api-staging.onrender.com/api
@@ -97,6 +103,9 @@ services:
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /api/actuator/health
+    buildFilter:
+      paths:
+        - backend/**
     envVars:
       - key: SPRING_PROFILES_ACTIVE
         value: prod
@@ -136,6 +145,9 @@ services:
     branch: main
     buildCommand: cd webapp && npm install && npm run build
     staticPublishPath: ./webapp/dist
+    buildFilter:
+      paths:
+        - webapp/**
     envVars:
       - key: VITE_API_URL
         value: https://anok-api.onrender.com/api
@@ -152,4 +164,7 @@ services:
 #    - Static site: Always free
 # 3. Dev environment (develop branch): anok-*-staging services
 # 4. Main environment (main branch): anok-* services (no suffix)
-# 5. After first deployment, update CORS_ALLOWED_ORIGINS with actual URLs if needed
+# 5. Build filters are configured to only deploy services when their folders change:
+#    - Backend services: only deploy when backend/** files change
+#    - Frontend services: only deploy when webapp/** files change
+# 6. After first deployment, update CORS_ALLOWED_ORIGINS with actual URLs if needed
