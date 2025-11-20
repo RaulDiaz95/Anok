@@ -10,7 +10,7 @@ databases:
   # Staging Database
   - name: anok-db-staging
     databaseName: anok_db_staging
-    plan: starter
+    plan: free
     region: ohio
     ipAllowList: []
 
@@ -21,7 +21,7 @@ services:
     name: anok-api-staging
     runtime: docker
     region: ohio
-    plan: starter
+    plan: free
     branch: develop  # Deploy from develop branch (or use 'staging' if you have one)
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
@@ -74,7 +74,10 @@ services:
         destination: /index.html
 
 # Notes:
-# 1. Update service names and URLs to match your preferred naming
-# 2. After first deployment, update CORS_ALLOWED_ORIGINS with actual frontend URL
-# 3. For custom domains, add them in Render dashboard and update URLs accordingly
-# 4. Adjust region based on your user base location
+# 1. All services are using FREE tier plans
+# 2. Free tier limitations:
+#    - Database: Expires after 90 days, 1GB storage
+#    - Web service: Spins down after 15 mins of inactivity (slow cold starts)
+#    - Static site: Always free
+# 3. After first deployment, update CORS_ALLOWED_ORIGINS with actual frontend URL
+# 4. For custom domains, add them in Render dashboard and update URLs accordingly
