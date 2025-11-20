@@ -1,8 +1,32 @@
-import { LoginRequest, User, AuthResponse } from "../types/auth";
+import {
+  LoginRequest,
+  User,
+  AuthResponse,
+  RegisterRequest,
+} from "../types/auth";
+import { buildApiUrl } from "../config/env";
 
-const API_URL = "http://localhost:8080/api/auth";
+const API_URL = buildApiUrl("/auth");
 
 class AuthService {
+  async register(data: RegisterRequest): Promise<User> {
+    const response = await fetch(`${API_URL}/register`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      body: JSON.stringify(data),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || "Registration failed");
+    }
+
+    const result: AuthResponse = await response.json();
+    return result.user;
+  }
+
   async login(credentials: LoginRequest): Promise<User> {
     const response = await fetch(`${API_URL}/login`, {
       method: "POST",
