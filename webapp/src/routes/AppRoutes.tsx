@@ -5,7 +5,7 @@ import ScrollToTop from "../components/ScrollToTop";
 
 export default function AppRoutes() {
   return (
-    <BrowserRouter basename="/Anoktest-web">
+    <BrowserRouter basename="/">
       <ScrollToTop />  {/* 👈 este es el truco */}
       <Routes>
         <Route path="/" element={<LandingPage />} />
