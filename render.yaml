@@ -1,5 +1,5 @@
 # Render Blueprint for Anok Platform
-# This file defines all services for staging environment
+# This file defines services for both dev and main environments
 #
 # To use this blueprint:
 # 1. Push this file to your repository
@@ -7,22 +7,32 @@
 # 3. Render will automatically create all services defined below
 
 databases:
-  # Staging Database
+  # Dev Database (for develop branch)
   - name: anok-db-staging
     databaseName: anok_db_staging
     plan: free
     region: ohio
     ipAllowList: []
 
-services:
+  # Main Database (for main branch)
+  - name: anok-db
+    databaseName: anok_db
+    plan: free
+    region: ohio
+    ipAllowList: []
 
-  # Staging Backend API
+services:
+  # ==========================================
+  # DEV ENVIRONMENT (develop branch)
+  # ==========================================
+
+  # Dev Backend API
   - type: web
     name: anok-api-staging
     runtime: docker
     region: ohio
     plan: free
-    branch: develop  # Deploy from develop branch (or use 'staging' if you have one)
+    branch: develop
     dockerfilePath: ./backend/Dockerfile
     dockerContext: ./backend
     healthCheckPath: /api/actuator/health
@@ -52,13 +62,13 @@ services:
           name: anok-db-staging
           property: password
       - key: CORS_ALLOWED_ORIGINS
-        value: https://anok-staging.onrender.com  # Update with your staging frontend URL
+        value: https://anok-frontend-staging.onrender.com
       - key: ENABLE_SWAGGER_UI
-        value: true  # Keep enabled in staging for testing
+        value: true
       - key: ENABLE_API_DOCS
         value: true
 
-  # Staging Frontend
+  # Dev Frontend
   - type: web
     name: anok-frontend-staging
     runtime: static
@@ -73,11 +83,73 @@ services:
         source: /*
         destination: /index.html
 
+  # ==========================================
+  # MAIN ENVIRONMENT (main branch)
+  # ==========================================
+
+  # Main Backend API
+  - type: web
+    name: anok-api
+    runtime: docker
+    region: ohio
+    plan: free
+    branch: main
+    dockerfilePath: ./backend/Dockerfile
+    dockerContext: ./backend
+    healthCheckPath: /api/actuator/health
+    envVars:
+      - key: SPRING_PROFILES_ACTIVE
+        value: prod
+      - key: PORT
+        value: 8080
+      - key: DB_HOST
+        fromDatabase:
+          name: anok-db
+          property: host
+      - key: DB_PORT
+        fromDatabase:
+          name: anok-db
+          property: port
+      - key: DB_NAME
+        fromDatabase:
+          name: anok-db
+          property: database
+      - key: DB_USER
+        fromDatabase:
+          name: anok-db
+          property: user
+      - key: DB_PASSWORD
+        fromDatabase:
+          name: anok-db
+          property: password
+      - key: CORS_ALLOWED_ORIGINS
+        value: https://anok-frontend.onrender.com
+      - key: ENABLE_SWAGGER_UI
+        value: false
+      - key: ENABLE_API_DOCS
+        value: false
+
+  # Main Frontend
+  - type: web
+    name: anok-frontend
+    runtime: static
+    branch: main
+    buildCommand: cd webapp && npm install && npm run build
+    staticPublishPath: ./webapp/dist
+    envVars:
+      - key: VITE_API_URL
+        value: https://anok-api.onrender.com/api
+    routes:
+      - type: rewrite
+        source: /*
+        destination: /index.html
+
 # Notes:
 # 1. All services are using FREE tier plans
 # 2. Free tier limitations:
 #    - Database: Expires after 90 days, 1GB storage
 #    - Web service: Spins down after 15 mins of inactivity (slow cold starts)
 #    - Static site: Always free
-# 3. After first deployment, update CORS_ALLOWED_ORIGINS with actual frontend URL
-# 4. For custom domains, add them in Render dashboard and update URLs accordingly
+# 3. Dev environment (develop branch): anok-*-staging services
+# 4. Main environment (main branch): anok-* services (no suffix)
+# 5. After first deployment, update CORS_ALLOWED_ORIGINS with actual URLs if needed
