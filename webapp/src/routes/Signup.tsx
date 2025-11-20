@@ -3,12 +3,13 @@ import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { motion } from "framer-motion";
 
-export default function Login() {
+export default function Signup() {
+  const [fullName, setFullName] = useState("");
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const { register } = useAuth();
   const navigate = useNavigate();
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -17,10 +18,10 @@ export default function Login() {
     setIsLoading(true);
 
     try {
-      await login({ email, password });
+      await register({ fullName, email, password });
       navigate("/");
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Login failed");
+      setError(err instanceof Error ? err.message : "Registration failed");
     } finally {
       setIsLoading(false);
     }
@@ -37,9 +38,9 @@ export default function Login() {
         <div className="bg-[#1a1a2e]/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-[#b11226]/20 p-8">
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">
-              Welcome to <span className="text-[#b11226]">Anok</span>Events
+              Join <span className="text-[#b11226]">Anok</span>Events
             </h1>
-            <p className="text-gray-400">Sign in to your account</p>
+            <p className="text-gray-400">Create a new account</p>
           </div>
 
           <form onSubmit={handleSubmit} className="space-y-6">
@@ -52,6 +53,24 @@ export default function Login() {
                 {error}
               </motion.div>
             )}
+
+            <div>
+              <label
+                htmlFor="fullName"
+                className="block text-sm font-medium text-gray-300 mb-2"
+              >
+                Full Name
+              </label>
+              <input
+                type="text"
+                id="fullName"
+                value={fullName}
+                onChange={(e) => setFullName(e.target.value)}
+                required
+                className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                placeholder="Jane Doe"
+              />
+            </div>
 
             <div>
               <label
@@ -85,7 +104,7 @@ export default function Login() {
                 onChange={(e) => setPassword(e.target.value)}
                 required
                 className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                placeholder="••••••••"
+                placeholder="••••••••••"
               />
             </div>
 
@@ -94,18 +113,18 @@ export default function Login() {
               disabled={isLoading}
               className="w-full bg-[#b11226] hover:bg-[#d31a33] text-white font-semibold py-3 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
             >
-              {isLoading ? "Signing in..." : "Sign In"}
+              {isLoading ? "Creating account..." : "Sign Up"}
             </button>
           </form>
 
           <div className="mt-6 text-center">
             <p className="text-gray-400 text-sm">
-              Don't have an account?{" "}
+              Already have an account?{" "}
               <Link
-                to="/signup"
+                to="/login"
                 className="text-[#b11226] hover:text-[#d31a33] font-medium"
               >
-                Sign up
+                Sign in
               </Link>
             </p>
           </div>
