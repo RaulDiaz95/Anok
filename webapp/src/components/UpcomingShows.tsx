@@ -4,6 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 
 const events = [
   {
+    id: 1,
     title: "Imagine Dragons",
     location: "New York, NY",
     date: "Dec 10, 2025",
@@ -12,6 +13,7 @@ const events = [
       "Experience an electrifying night with Imagine Dragons — a fusion of rock, pop, and pure emotion.",
   },
   {
+    id: 2,
     title: "Billie Eilish",
     location: "Chicago, IL",
     date: "Jan 15, 2026",
@@ -20,24 +22,30 @@ const events = [
       "Billie returns with her most intimate performance yet — dark pop, cinematic visuals, and raw energy.",
   },
   {
+    id: 3,
     title: "The Weeknd",
     location: "Los Angeles, CA",
     date: "Feb 22, 2026",
     img: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=1400&q=80",
     description:
-      "Dive into The Weeknd’s world of neon lights and hypnotic beats — a once-in-a-lifetime show.",
+      "Dive into The Weeknd's world of neon lights and hypnotic beats — a once-in-a-lifetime show.",
   },
   {
+    id: 4,
     title: "Coldplay",
     location: "London, UK",
     date: "Mar 30, 2026",
     img: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=1400&q=80",
     description:
-      "A colorful celebration of sound and emotion — Coldplay’s most immersive world tour yet.",
+      "A colorful celebration of sound and emotion — Coldplay's most immersive world tour yet.",
   },
 ];
 
-export default function UpcomingShows() {
+interface UpcomingShowsProps {
+  id?: string;
+}
+
+export default function UpcomingShows({ id }: UpcomingShowsProps) {
   const navigate = useNavigate();
   const [activeIndex, setActiveIndex] = useState(0);
   const [manualSwitch, setManualSwitch] = useState(false);
@@ -58,7 +66,7 @@ export default function UpcomingShows() {
 
   return (
     <section
-      id="events"
+      id={id}
       className="relative w-full min-h-[90vh] overflow-hidden bg-[#0f0f1a] text-white flex flex-col justify-between"
     >
       {/* Fondo difuminado */}
