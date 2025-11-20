@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import LandingPage from "../LandingPage";
 import EventDetail from "./EventDetail";
+import Login from "./Login";
 import ScrollToTop from "../components/ScrollToTop";
 
 export default function AppRoutes() {
@@ -10,6 +11,7 @@ export default function AppRoutes() {
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/event/:id" element={<EventDetail />} />
+        <Route path="/login" element={<Login />} />
       </Routes>
     </BrowserRouter>
   );
