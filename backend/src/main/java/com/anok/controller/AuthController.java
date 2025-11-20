@@ -5,7 +5,7 @@ import com.anok.dto.LoginRequest;
 import com.anok.dto.RegisterRequest;
 import com.anok.dto.UserDTO;
 import com.anok.service.AuthenticationService;
-import jakarta.servlet.http.Cookie;
+import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import jakarta.validation.Valid;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -14,6 +14,7 @@ import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.http.ResponseCookie;
 
 /**
  * Controller for authentication endpoints.
@@ -48,6 +49,7 @@ public class AuthController {
     @PostMapping("/login")
     public ResponseEntity<AuthResponse> login(
             @Valid @RequestBody LoginRequest request,
+            HttpServletRequest servletRequest,
             HttpServletResponse response
     ) {
         // Authenticate and generate token
@@ -56,14 +58,15 @@ public class AuthController {
         // Get user data
         UserDTO user = authenticationService.getCurrentUser(request.getEmail());
 
-        // Set JWT in HttpOnly cookie
-        Cookie cookie = new Cookie("access_token", accessToken);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false); // Set to true in production with HTTPS
-        cookie.setPath("/api");
-        cookie.setMaxAge(3600); // 1 hour
-        // cookie.setSameSite("Strict"); // Requires Servlet 6.0+
-        response.addCookie(cookie);
+        boolean secure = isSecureRequest(servletRequest);
+        ResponseCookie cookie = ResponseCookie.from("access_token", accessToken)
+                .httpOnly(true)
+                .secure(secure)
+                .path("/api")
+                .maxAge(3600)
+                .sameSite("None")
+                .build();
+        response.addHeader("Set-Cookie", cookie.toString());
 
         AuthResponse authResponse = new AuthResponse("Login successful", user);
         return ResponseEntity.ok(authResponse);
@@ -76,14 +79,16 @@ public class AuthController {
      * @return success message
      */
     @PostMapping("/logout")
-    public ResponseEntity<AuthResponse> logout(HttpServletResponse response) {
-        // Clear access token cookie
-        Cookie cookie = new Cookie("access_token", null);
-        cookie.setHttpOnly(true);
-        cookie.setSecure(false);
-        cookie.setPath("/api");
-        cookie.setMaxAge(0); // Delete cookie
-        response.addCookie(cookie);
+    public ResponseEntity<AuthResponse> logout(HttpServletRequest servletRequest, HttpServletResponse response) {
+        boolean secure = isSecureRequest(servletRequest);
+        ResponseCookie cookie = ResponseCookie.from("access_token", "")
+                .httpOnly(true)
+                .secure(secure)
+                .path("/api")
+                .maxAge(0)
+                .sameSite("None")
+                .build();
+        response.addHeader("Set-Cookie", cookie.toString());
 
         AuthResponse authResponse = new AuthResponse("Logout successful", null);
         return ResponseEntity.ok(authResponse);
@@ -101,5 +106,12 @@ public class AuthController {
 
         UserDTO user = authenticationService.getCurrentUser(email);
         return ResponseEntity.ok(user);
+    }
+
+    private boolean isSecureRequest(HttpServletRequest request) {
+        String host = request.getServerName();
+        return request.isSecure()
+                || host == null
+                || (!host.equals("localhost") && !host.equals("127.0.0.1"));
     }
 }
