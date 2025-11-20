@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion } from "framer-motion";
-import { useNavigate } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { LogOut, User } from "lucide-react";
 
@@ -10,6 +10,7 @@ export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -20,7 +21,7 @@ export default function Navbar() {
   const navItems = [
     { label: "Home", href: "#home" },
     { label: "Discover", href: "#discover" },
-    { label: "Events", href: "#events" },
+    { label: "Upcoming", href: "#events" },
     { label: "About", href: "#about" },
     { label: "News", href: "#news" },
   ];
@@ -29,6 +30,19 @@ export default function Navbar() {
     logout();
     setProfileOpen(false);
     navigate("/");
+  };
+
+  const handleCreateEvent = () => {
+    navigate("/events/new");
+  };
+
+  const handleNavClick = (href: string) => {
+    if (location.pathname === "/") {
+      const section = document.querySelector(href);
+      if (section) section.scrollIntoView({ behavior: "smooth" });
+    } else {
+      navigate({ pathname: "/", hash: href });
+    }
   };
 
   return (
@@ -58,8 +72,7 @@ export default function Navbar() {
                   href={item.href}
                   onClick={(e) => {
                     e.preventDefault();
-                    const section = document.querySelector(item.href);
-                    if (section) section.scrollIntoView({ behavior: "smooth" });
+                    handleNavClick(item.href);
                   }}
                   className="hover:text-[#b11226] transition cursor-pointer"
                 >
@@ -68,6 +81,21 @@ export default function Navbar() {
               </li>
             ))}
           </ul>
+
+          <div className="hidden md:flex gap-3">
+            <button
+              onClick={() => navigate("/events")}
+              className="px-4 py-2 border border-[#b11226]/40 rounded-lg text-white hover:bg-[#b11226]/10 transition"
+            >
+              Events
+            </button>
+            <button
+              onClick={handleCreateEvent}
+              className="px-4 py-2 border border-[#b11226]/40 rounded-lg text-white hover:bg-[#b11226]/10 transition"
+            >
+              Create Event
+            </button>
+          </div>
 
           {isAuthenticated ? (
             <div className="hidden md:block relative">
@@ -126,8 +154,7 @@ export default function Navbar() {
                   href={item.href}
                   onClick={(e) => {
                     e.preventDefault();
-                    const section = document.querySelector(item.href);
-                    if (section) section.scrollIntoView({ behavior: "smooth" });
+                    handleNavClick(item.href);
                     setMenuOpen(false);
                   }}
                   className="hover:text-[#b11226] transition"
@@ -136,6 +163,27 @@ export default function Navbar() {
                 </a>
               </li>
             ))}
+
+            <li className="pt-2 w-full px-6 space-y-3">
+              <button
+                onClick={() => {
+                  navigate("/events");
+                  setMenuOpen(false);
+                }}
+                className="w-full px-4 py-2 border border-[#b11226]/40 rounded-lg text-white hover:bg-[#b11226]/10 transition"
+              >
+                Events
+              </button>
+              <button
+                onClick={() => {
+                  handleCreateEvent();
+                  setMenuOpen(false);
+                }}
+                className="w-full px-4 py-2 border border-[#b11226]/40 rounded-lg text-white hover:bg-[#b11226]/10 transition"
+              >
+                Create Event
+              </button>
+            </li>
 
             {isAuthenticated ? (
               <>

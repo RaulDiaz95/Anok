@@ -4,6 +4,7 @@ import com.anok.security.JwtAuthenticationFilter;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
 import org.springframework.http.HttpStatus;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.AuthenticationProvider;
@@ -62,6 +63,7 @@ public class SecurityConfig {
                                 "/api-docs/**",          // OpenAPI docs
                                 "/v3/api-docs/**"        // OpenAPI v3 docs
                         ).permitAll()
+                        .requestMatchers(HttpMethod.GET, "/events/**").permitAll()
 
                         // Admin-only endpoints (future use)
                         .requestMatchers("/admin/**").hasRole("ADMIN")

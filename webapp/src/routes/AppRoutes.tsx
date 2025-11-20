@@ -3,6 +3,8 @@ import LandingPage from "../LandingPage";
 import EventDetail from "./EventDetail";
 import Login from "./Login";
 import Signup from "./Signup";
+import CreateEvent from "./CreateEvent";
+import Events from "./Events";
 import ScrollToTop from "../components/ScrollToTop";
 
 export default function AppRoutes() {
@@ -14,6 +16,8 @@ export default function AppRoutes() {
         <Route path="/event/:id" element={<EventDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
+        <Route path="/events/new" element={<CreateEvent />} />
+        <Route path="/events" element={<Events />} />
       </Routes>
     </BrowserRouter>
   );
