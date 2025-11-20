@@ -107,6 +107,19 @@ export default function Events() {
                   </span>
                 </div>
 
+                {event.genres && event.genres.length > 0 && (
+                  <div className="flex flex-wrap gap-2">
+                    {event.genres.map((genre) => (
+                      <span
+                        key={`${event.id}-${genre}`}
+                        className="px-3 py-1 text-xs font-semibold rounded-full border border-[#b11226]/30 text-gray-200 bg-[#b11226]/10"
+                      >
+                        {genre}
+                      </span>
+                    ))}
+                  </div>
+                )}
+
                 {event.description && (
                   <p className="text-gray-300 text-sm line-clamp-3">
                     {event.description}

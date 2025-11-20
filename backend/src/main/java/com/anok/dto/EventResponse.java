@@ -1,6 +1,8 @@
 package com.anok.dto;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.UUID;
 
 public class EventResponse {
@@ -13,6 +15,7 @@ public class EventResponse {
     private String venueAddress;
     private Integer capacity;
     private String ageRestriction;
+    private List<String> genres = new ArrayList<>();
     private UUID ownerId;
     private String ownerName;
 
@@ -78,6 +81,14 @@ public class EventResponse {
 
     public void setAgeRestriction(String ageRestriction) {
         this.ageRestriction = ageRestriction;
+    }
+
+    public List<String> getGenres() {
+        return genres;
+    }
+
+    public void setGenres(List<String> genres) {
+        this.genres = genres;
     }
 
     public UUID getOwnerId() {

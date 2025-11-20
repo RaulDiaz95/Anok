@@ -13,12 +13,12 @@ import java.util.UUID;
 @Repository
 public interface EventRepository extends JpaRepository<Event, UUID> {
 
-    @EntityGraph(attributePaths = "owner")
+    @EntityGraph(attributePaths = {"owner", "genres"})
     List<Event> findAllByEventDateTimeAfterOrderByEventDateTimeAsc(LocalDateTime cutoff);
 
-    @EntityGraph(attributePaths = "owner")
+    @EntityGraph(attributePaths = {"owner", "genres"})
     List<Event> findAllByOrderByEventDateTimeAsc();
 
-    @EntityGraph(attributePaths = "owner")
+    @EntityGraph(attributePaths = {"owner", "genres"})
     Optional<Event> findById(UUID id);
 }

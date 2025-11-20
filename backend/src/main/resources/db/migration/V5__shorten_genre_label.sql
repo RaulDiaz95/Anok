@@ -1,0 +1,2 @@
+ALTER TABLE event_genres
+    ALTER COLUMN label TYPE VARCHAR(25);

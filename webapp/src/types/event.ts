@@ -7,6 +7,7 @@ export interface Event {
   venueAddress: string;
   capacity: number;
   ageRestriction: string;
+  genres?: string[] | null;
   ownerId?: string;
   ownerName?: string | null;
 }
@@ -19,4 +20,5 @@ export interface CreateEventInput {
   venueAddress: string;
   capacity: number;
   ageRestriction: string;
+  genres?: string[];
 }

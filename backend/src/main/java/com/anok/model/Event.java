@@ -41,6 +41,10 @@ public class Event {
     @Column(name = "age_restriction", nullable = false, length = 50)
     private String ageRestriction = "ALL";
 
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("orderIndex ASC, createdAt ASC")
+    private java.util.List<EventGenre> genres = new java.util.ArrayList<>();
+
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
 
@@ -128,6 +132,14 @@ public class Event {
 
     public void setAgeRestriction(String ageRestriction) {
         this.ageRestriction = ageRestriction;
+    }
+
+    public java.util.List<EventGenre> getGenres() {
+        return genres;
+    }
+
+    public void setGenres(java.util.List<EventGenre> genres) {
+        this.genres = genres;
     }
 
     public LocalDateTime getCreatedAt() {

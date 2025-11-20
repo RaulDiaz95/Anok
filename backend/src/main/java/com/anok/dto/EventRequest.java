@@ -1,12 +1,10 @@
 package com.anok.dto;
 
-import jakarta.validation.constraints.Future;
-import jakarta.validation.constraints.Min;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import jakarta.validation.constraints.*;
 
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 public class EventRequest {
 
@@ -35,6 +33,9 @@ public class EventRequest {
     @NotBlank
     @Size(max = 50)
     private String ageRestriction;
+
+    @Size(max = 50)
+    private List<@NotBlank @Size(max = 25) String> genres = new ArrayList<>();
 
     public String getTitle() {
         return title;
@@ -90,5 +91,13 @@ public class EventRequest {
 
     public void setAgeRestriction(String ageRestriction) {
         this.ageRestriction = ageRestriction;
+    }
+
+    public List<String> getGenres() {
+        return genres;
+    }
+
+    public void setGenres(List<String> genres) {
+        this.genres = genres;
     }
 }
