@@ -1,5 +1,6 @@
 
 import { useState } from "react";
+import { buildApiUrl } from "../config/env";
 
 export default function Contact(){
   const [state, setState] = useState<{status:string, message:string}|null>(null);
@@ -13,7 +14,7 @@ export default function Contact(){
     };
     try {
       // For now, just call the API health as a demo; replace with /contact when ready
-      const res = await fetch(import.meta.env.VITE_API_URL + "/actuator/health");
+      const res = await fetch(buildApiUrl("/actuator/health"));
       const js = await res.json();
       setState({status: "ok", message: JSON.stringify(js)});
     } catch (err:any){

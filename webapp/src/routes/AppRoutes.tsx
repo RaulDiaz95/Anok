@@ -1,15 +1,23 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 import LandingPage from "../LandingPage";
 import EventDetail from "./EventDetail";
+import Login from "./Login";
+import Signup from "./Signup";
+import CreateEvent from "./CreateEvent";
+import Events from "./Events";
 import ScrollToTop from "../components/ScrollToTop";
 
 export default function AppRoutes() {
   return (
-    <BrowserRouter basename="/Anoktest-web">
+    <BrowserRouter basename="/">
       <ScrollToTop />  {/* 👈 este es el truco */}
       <Routes>
         <Route path="/" element={<LandingPage />} />
         <Route path="/event/:id" element={<EventDetail />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/signup" element={<Signup />} />
+        <Route path="/events/new" element={<CreateEvent />} />
+        <Route path="/events" element={<Events />} />
       </Routes>
     </BrowserRouter>
   );
