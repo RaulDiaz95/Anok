@@ -65,7 +65,7 @@ services:
           name: anok-db-staging
           property: password
       - key: CORS_ALLOWED_ORIGINS
-        value: https://anok-frontend-staging.onrender.com
+        value: https://anok-frontend-staging-voih.onrender.com
       - key: ENABLE_SWAGGER_UI
         value: true
       - key: ENABLE_API_DOCS
@@ -132,7 +132,7 @@ services:
           name: anok-db
           property: password
       - key: CORS_ALLOWED_ORIGINS
-        value: https://anok-frontend.onrender.com
+        value: https://anok-frontend-staging-voih.onrender.com
       - key: ENABLE_SWAGGER_UI
         value: false
       - key: ENABLE_API_DOCS
