@@ -5,6 +5,8 @@ import jakarta.persistence.*;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.util.LinkedHashSet;
+import java.util.Set;
 import java.util.UUID;
 
 /**
@@ -76,7 +78,7 @@ public class Event {
 
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("createdAt ASC")
-    private java.util.List<EventPerformer> performers = new java.util.ArrayList<>();
+    private Set<EventPerformer> performers = new LinkedHashSet<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -247,11 +249,11 @@ public class Event {
         this.genres = genres;
     }
 
-    public java.util.List<EventPerformer> getPerformers() {
+    public Set<EventPerformer> getPerformers() {
         return performers;
     }
 
-    public void setPerformers(java.util.List<EventPerformer> performers) {
+    public void setPerformers(Set<EventPerformer> performers) {
         this.performers = performers;
     }
 
