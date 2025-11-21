@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
 import { eventService } from "../services/eventService";
 import { Event } from "../types/event";
-import { format } from "date-fns";
+import { format, parseISO } from "date-fns";
 import Navbar from "../components/NavBar";
 import { Link } from "react-router-dom";
 import { CalendarDays, MapPin, Users } from "lucide-react";
@@ -28,11 +28,20 @@ export default function Events() {
     loadEvents();
   }, []);
 
-  const formatDate = (value: string) => {
+const formatDateTime = (event: Event) => {
+  const dt = event.eventDateTime || `${event.eventDate}T${event.startTime}`;
+  try {
+    return format(new Date(dt), "PPP • p");
+  } catch {
+    return "Date to be confirmed";
+  }
+};
+  const formatTimeOnly = (time?: string | null) => {
+    if (!time) return "—";
     try {
-      return format(new Date(value), "PPP • p");
+      return format(parseISO(`1970-01-01T${time}`), "p");
     } catch {
-      return "Date to be confirmed";
+      return time;
     }
   };
 
@@ -99,20 +108,39 @@ export default function Events() {
                     </h2>
                     <p className="text-sm text-gray-400 flex items-center gap-2">
                       <CalendarDays size={16} className="text-[#b11226]" />
-                      {formatDate(event.eventDateTime)}
+                      {formatDateTime(event)}
+                    </p>
+                    <p className="text-xs text-gray-400">
+                      Duration: {event.eventLengthHours}h • Starts {formatTimeOnly(event.startTime)}{" "}
+                      {event.endTime ? `• Ends ${formatTimeOnly(event.endTime)}` : ""}
                     </p>
                   </div>
-                  <span className="text-xs font-semibold uppercase tracking-wide bg-[#b11226]/20 text-[#f7c0c7] px-3 py-1 rounded-full">
-                    {event.ageRestriction}
-                  </span>
+                  <div className="flex gap-2">
+                    <span className="text-xs font-semibold uppercase tracking-wide bg-[#b11226]/20 text-[#f7c0c7] px-3 py-1 rounded-full">
+                      {event.isLive ? "Live" : "Offline"}
+                    </span>
+                    <span className="text-xs font-semibold uppercase tracking-wide bg-[#1f6f1f]/20 text-[#b6f0b6] px-3 py-1 rounded-full">
+                      {event.allAges ? "All Ages" : "18+"}
+                    </span>
+                  </div>
                 </div>
 
+                {event.flyerUrl && event.flyerUrl.trim() !== "" && (
+                  <div className="w-full overflow-hidden rounded-xl border border-[#b11226]/20">
+                    <img
+                      src={event.flyerUrl}
+                      alt={`${event.title} flyer`}
+                      className="w-full h-56 object-cover"
+                    />
+                  </div>
+                )}
+
                 {event.genres && event.genres.length > 0 && (
-                  <div className="flex flex-wrap gap-2">
+                  <div className="flex flex-wrap gap-2 text-xs text-gray-200">
                     {event.genres.map((genre) => (
                       <span
                         key={`${event.id}-${genre}`}
-                        className="px-3 py-1 text-xs font-semibold rounded-full border border-[#b11226]/30 text-gray-200 bg-[#b11226]/10"
+                        className="px-3 py-1 font-semibold rounded-full border border-[#b11226]/30 text-gray-200 bg-[#b11226]/10"
                       >
                         {genre}
                       </span>
@@ -120,9 +148,9 @@ export default function Events() {
                   </div>
                 )}
 
-                {event.description && (
-                  <p className="text-gray-300 text-sm line-clamp-3">
-                    {event.description}
+                {event.about && (
+                  <p className="text-gray-300 text-sm">
+                    {event.about}
                   </p>
                 )}
 
@@ -146,6 +174,31 @@ export default function Events() {
                   )}
                 </div>
 
+                {event.performers && event.performers.length > 0 && (
+                  <div className="text-sm text-gray-200 space-y-2">
+                    <p className="font-semibold text-white">Performers</p>
+                    <div className="space-y-1">
+                      {event.performers.map((perf) => (
+                        <div key={perf.id || perf.performerName} className="border border-[#b11226]/20 rounded-lg px-3 py-2 bg-white/5">
+                          <p className="font-semibold text-white">{perf.performerName}</p>
+                          <p className="text-xs text-gray-400">
+                            {[perf.genre1, perf.genre2].filter(Boolean).join(", ")}
+                          </p>
+                          {perf.performerLink && (
+                            <a
+                              className="text-xs text-[#f7c0c7] underline hover:text-white"
+                              href={perf.performerLink}
+                              target="_blank"
+                              rel="noreferrer"
+                            >
+                              {perf.performerLink}
+                            </a>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </motion.article>
             ))}
           </div>

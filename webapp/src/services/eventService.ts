@@ -31,6 +31,25 @@ class EventService {
 
     return response.json();
   }
+
+  async uploadFlyer(file: File): Promise<string> {
+    const formData = new FormData();
+    formData.append("file", file);
+
+    const response = await fetch(buildApiUrl("/upload-flyer"), {
+      method: "POST",
+      credentials: "include",
+      body: formData,
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || "Failed to upload flyer");
+    }
+
+    const data = await response.json();
+    return data.url;
+  }
 }
 
 export const eventService = new EventService();

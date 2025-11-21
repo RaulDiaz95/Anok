@@ -8,9 +8,9 @@ import java.time.LocalDateTime;
 import java.util.UUID;
 
 @Entity
-@Table(name = "event_genres")
+@Table(name = "event_performers")
 @JsonIgnoreProperties({"hibernateLazyInitializer", "handler"})
-public class EventGenre {
+public class EventPerformer {
 
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -21,11 +21,17 @@ public class EventGenre {
     @JsonIgnore
     private Event event;
 
-    @Column(nullable = false, length = 25)
-    private String label;
+    @Column(name = "performer_name", nullable = false, length = 255)
+    private String performerName;
 
-    @Column(name = "order_index", nullable = false)
-    private Integer orderIndex = 0;
+    @Column(length = 100)
+    private String genre1;
+
+    @Column(length = 100)
+    private String genre2;
+
+    @Column(name = "performer_link")
+    private String performerLink;
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -51,19 +57,35 @@ public class EventGenre {
         this.event = event;
     }
 
-    public String getLabel() {
-        return label;
+    public String getPerformerName() {
+        return performerName;
     }
 
-    public void setLabel(String label) {
-        this.label = label;
+    public void setPerformerName(String performerName) {
+        this.performerName = performerName;
     }
 
-    public Integer getOrderIndex() {
-        return orderIndex;
+    public String getGenre1() {
+        return genre1;
     }
 
-    public void setOrderIndex(Integer orderIndex) {
-        this.orderIndex = orderIndex;
+    public void setGenre1(String genre1) {
+        this.genre1 = genre1;
+    }
+
+    public String getGenre2() {
+        return genre2;
+    }
+
+    public void setGenre2(String genre2) {
+        this.genre2 = genre2;
+    }
+
+    public String getPerformerLink() {
+        return performerLink;
+    }
+
+    public void setPerformerLink(String performerLink) {
+        this.performerLink = performerLink;
     }
 }

@@ -2,7 +2,9 @@ package com.anok.model;
 
 import jakarta.persistence.*;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.UUID;
 
 /**
@@ -29,11 +31,32 @@ public class Event {
     @Column(name = "event_datetime", nullable = false)
     private LocalDateTime eventDateTime;
 
+    @Column(name = "event_date", nullable = false)
+    private LocalDate eventDate = LocalDate.now();
+
+    @Column(name = "flyer_url", columnDefinition = "TEXT")
+    private String flyerUrl = "";
+
+    @Column(name = "is_live", nullable = false)
+    private Boolean isLive = true;
+
+    @Column(name = "start_time", nullable = false)
+    private LocalTime startTime = LocalTime.MIDNIGHT;
+
+    @Column(name = "event_length_hours", nullable = false)
+    private Integer eventLengthHours = 0;
+
+    @Column(name = "end_time")
+    private LocalTime endTime;
+
     @Column(name = "venue_name", nullable = false, length = 255)
     private String venueName;
 
     @Column(name = "venue_address", nullable = false, columnDefinition = "TEXT")
     private String venueAddress;
+
+    @Column(name = "about", nullable = false, columnDefinition = "TEXT")
+    private String about = "";
 
     @Column(nullable = false)
     private Integer capacity = 0;
@@ -41,12 +64,19 @@ public class Event {
     @Column(name = "age_restriction", nullable = false, length = 50)
     private String ageRestriction = "ALL";
 
-    @Column(name = "serves_alcohol", nullable = false)
-    private Boolean servesAlcohol = false;
+    @Column(name = "all_ages", nullable = false)
+    private Boolean allAges = true;
+
+    @Column(name = "alcohol", nullable = false)
+    private Boolean alcohol = false;
 
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC, createdAt ASC")
     private java.util.List<EventGenre> genres = new java.util.ArrayList<>();
+
+    @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("createdAt ASC")
+    private java.util.List<EventPerformer> performers = new java.util.ArrayList<>();
 
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
@@ -105,12 +135,68 @@ public class Event {
         this.eventDateTime = eventDateTime;
     }
 
+    public LocalDate getEventDate() {
+        return eventDate;
+    }
+
+    public void setEventDate(LocalDate eventDate) {
+        this.eventDate = eventDate;
+    }
+
+    public String getFlyerUrl() {
+        return flyerUrl;
+    }
+
+    public void setFlyerUrl(String flyerUrl) {
+        this.flyerUrl = flyerUrl;
+    }
+
+    public Boolean getLive() {
+        return isLive;
+    }
+
+    public void setLive(Boolean live) {
+        isLive = live;
+    }
+
+    public LocalTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public Integer getEventLengthHours() {
+        return eventLengthHours;
+    }
+
+    public void setEventLengthHours(Integer eventLengthHours) {
+        this.eventLengthHours = eventLengthHours;
+    }
+
+    public LocalTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalTime endTime) {
+        this.endTime = endTime;
+    }
+
     public String getVenueName() {
         return venueName;
     }
 
     public void setVenueName(String venueName) {
         this.venueName = venueName;
+    }
+
+    public String getAbout() {
+        return about;
+    }
+
+    public void setAbout(String about) {
+        this.about = about;
     }
 
     public String getVenueAddress() {
@@ -137,12 +223,20 @@ public class Event {
         this.ageRestriction = ageRestriction;
     }
 
-    public Boolean getServesAlcohol() {
-        return servesAlcohol;
+    public Boolean getAllAges() {
+        return allAges;
     }
 
-    public void setServesAlcohol(Boolean servesAlcohol) {
-        this.servesAlcohol = servesAlcohol;
+    public void setAllAges(Boolean allAges) {
+        this.allAges = allAges;
+    }
+
+    public Boolean getAlcohol() {
+        return alcohol;
+    }
+
+    public void setAlcohol(Boolean alcohol) {
+        this.alcohol = alcohol;
     }
 
     public java.util.List<EventGenre> getGenres() {
@@ -151,6 +245,14 @@ public class Event {
 
     public void setGenres(java.util.List<EventGenre> genres) {
         this.genres = genres;
+    }
+
+    public java.util.List<EventPerformer> getPerformers() {
+        return performers;
+    }
+
+    public void setPerformers(java.util.List<EventPerformer> performers) {
+        this.performers = performers;
     }
 
     public LocalDateTime getCreatedAt() {
