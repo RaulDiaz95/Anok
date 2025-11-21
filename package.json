@@ -4,8 +4,9 @@
   "description": "Anok Platform - Monorepo (Spring Boot API + Frontend)",
   "private": true,
   "scripts": {
-    "dev": "docker compose up -d && sleep 3 && concurrently \"cd backend && ./mvnw spring-boot:run\" \"cd webapp && pnpm dev\"",
-    "clean": "docker compose down -v && cd backend && ./mvnw clean",
+    "dev": "docker compose up --build -d && sleep 5 && cd webapp && pnpm dev",
+    "stop": "docker compose down",
+    "clean": "docker compose down -v",
     "install:webapp": "cd webapp && pnpm install",
     "build:webapp": "cd webapp && pnpm build"
   },
