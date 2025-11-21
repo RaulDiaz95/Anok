@@ -34,6 +34,9 @@ public class EventRequest {
     @Size(max = 50)
     private String ageRestriction;
 
+    @NotNull
+    private Boolean servesAlcohol = false;
+
     @Size(max = 50)
     private List<@NotBlank @Size(max = 25) String> genres = new ArrayList<>();
 
@@ -91,6 +94,14 @@ public class EventRequest {
 
     public void setAgeRestriction(String ageRestriction) {
         this.ageRestriction = ageRestriction;
+    }
+
+    public Boolean getServesAlcohol() {
+        return servesAlcohol;
+    }
+
+    public void setServesAlcohol(Boolean servesAlcohol) {
+        this.servesAlcohol = servesAlcohol;
     }
 
     public List<String> getGenres() {

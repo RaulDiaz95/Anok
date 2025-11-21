@@ -40,6 +40,7 @@ public class EventService {
         event.setVenueAddress(request.getVenueAddress());
         event.setCapacity(request.getCapacity());
         event.setAgeRestriction(request.getAgeRestriction());
+        event.setServesAlcohol(request.getServesAlcohol());
         applyGenres(event, request.getGenres());
 
         Event saved = eventRepository.save(event);
@@ -70,6 +71,7 @@ public class EventService {
         response.setVenueAddress(event.getVenueAddress());
         response.setCapacity(event.getCapacity());
         response.setAgeRestriction(event.getAgeRestriction());
+        response.setServesAlcohol(event.getServesAlcohol());
         if (event.getGenres() != null) {
             List<String> genreLabels = event.getGenres().stream()
                     .sorted(java.util.Comparator.comparing(EventGenre::getOrderIndex))

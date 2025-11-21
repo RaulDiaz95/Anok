@@ -1,0 +1,2 @@
+ALTER TABLE events
+    ADD COLUMN serves_alcohol BOOLEAN NOT NULL DEFAULT FALSE;

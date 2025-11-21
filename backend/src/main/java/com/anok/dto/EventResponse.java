@@ -15,6 +15,7 @@ public class EventResponse {
     private String venueAddress;
     private Integer capacity;
     private String ageRestriction;
+    private Boolean servesAlcohol;
     private List<String> genres = new ArrayList<>();
     private UUID ownerId;
     private String ownerName;
@@ -81,6 +82,14 @@ public class EventResponse {
 
     public void setAgeRestriction(String ageRestriction) {
         this.ageRestriction = ageRestriction;
+    }
+
+    public Boolean getServesAlcohol() {
+        return servesAlcohol;
+    }
+
+    public void setServesAlcohol(Boolean servesAlcohol) {
+        this.servesAlcohol = servesAlcohol;
     }
 
     public List<String> getGenres() {

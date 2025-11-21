@@ -20,6 +20,7 @@ export default function CreateEvent() {
   const [genres, setGenres] = useState<string[]>([]);
   const [genreInput, setGenreInput] = useState("");
   const [genreError, setGenreError] = useState("");
+  const [servesAlcohol, setServesAlcohol] = useState(false);
   const [error, setError] = useState("");
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -45,6 +46,7 @@ export default function CreateEvent() {
         venueAddress,
         capacity,
         ageRestriction,
+        servesAlcohol,
         genres,
       };
       await eventService.create({
@@ -311,6 +313,22 @@ export default function CreateEvent() {
                   ))}
                 </div>
               )}
+            </div>
+
+            <div className="flex items-start gap-3">
+              <input
+                id="servesAlcohol"
+                type="checkbox"
+                checked={servesAlcohol}
+                onChange={(e) => setServesAlcohol(e.target.checked)}
+                className="mt-1 h-5 w-5 rounded border-gray-700 bg-[#0f0f1a]/50 text-[#b11226] focus:ring-2 focus:ring-[#b11226] focus:outline-none"
+              />
+              <label htmlFor="servesAlcohol" className="text-sm text-gray-300">
+                Alcohol
+                <span className="block text-xs text-gray-500">
+                  Check if alcohol will be served at the event.
+                </span>
+              </label>
             </div>
 
               <div className="flex flex-col md:flex-row gap-4 md:justify-end pt-2">

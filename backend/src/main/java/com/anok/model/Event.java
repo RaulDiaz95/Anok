@@ -41,6 +41,9 @@ public class Event {
     @Column(name = "age_restriction", nullable = false, length = 50)
     private String ageRestriction = "ALL";
 
+    @Column(name = "serves_alcohol", nullable = false)
+    private Boolean servesAlcohol = false;
+
     @OneToMany(mappedBy = "event", cascade = CascadeType.ALL, orphanRemoval = true)
     @OrderBy("orderIndex ASC, createdAt ASC")
     private java.util.List<EventGenre> genres = new java.util.ArrayList<>();
@@ -132,6 +135,14 @@ public class Event {
 
     public void setAgeRestriction(String ageRestriction) {
         this.ageRestriction = ageRestriction;
+    }
+
+    public Boolean getServesAlcohol() {
+        return servesAlcohol;
+    }
+
+    public void setServesAlcohol(Boolean servesAlcohol) {
+        this.servesAlcohol = servesAlcohol;
     }
 
     public java.util.List<EventGenre> getGenres() {
