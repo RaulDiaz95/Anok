@@ -25,10 +25,10 @@ services:
     image: maven:3.9-eclipse-temurin-17
     working_dir: /app
     command: >
-      sh -c "./mvnw
+      mvn
       -DskipTests
       -Dspring-boot.run.profiles=${SPRING_PROFILES_ACTIVE:-dev}
-      spring-boot:run"
+      spring-boot:run
     volumes:
       - ./backend:/app
       - maven_repo:/root/.m2
