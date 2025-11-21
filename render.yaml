@@ -83,7 +83,10 @@ services:
         - webapp/**
     envVars:
       - key: VITE_API_URL
-        value: https://anok-api-staging.onrender.com/api
+        fromService:
+          type: web
+          name: anok-api-staging
+          envVarKey: RENDER_EXTERNAL_URL
     routes:
       - type: rewrite
         source: /*
@@ -150,7 +153,10 @@ services:
         - webapp/**
     envVars:
       - key: VITE_API_URL
-        value: https://anok-api.onrender.com/api
+        fromService:
+          type: web
+          name: anok-api
+          envVarKey: RENDER_EXTERNAL_URL
     routes:
       - type: rewrite
         source: /*
