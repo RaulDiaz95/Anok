@@ -59,14 +59,19 @@ public class AuthController {
         UserDTO user = authenticationService.getCurrentUser(request.getEmail());
 
         boolean secure = isSecureRequest(servletRequest);
-        ResponseCookie cookie = ResponseCookie.from("access_token", accessToken)
+        ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from("access_token", accessToken)
                 .httpOnly(true)
                 .secure(secure)
                 .path("/api")
-                .maxAge(3600)
-                .sameSite("None")
-                .build();
-        response.addHeader("Set-Cookie", cookie.toString());
+                .maxAge(3600);
+
+        // Only set SameSite=None for secure connections (requires HTTPS)
+        // For localhost, omit SameSite to allow browser default (Lax)
+        if (secure) {
+            cookieBuilder.sameSite("None");
+        }
+
+        response.addHeader("Set-Cookie", cookieBuilder.build().toString());
 
         AuthResponse authResponse = new AuthResponse("Login successful", user);
         return ResponseEntity.ok(authResponse);
@@ -81,14 +86,19 @@ public class AuthController {
     @PostMapping("/logout")
     public ResponseEntity<AuthResponse> logout(HttpServletRequest servletRequest, HttpServletResponse response) {
         boolean secure = isSecureRequest(servletRequest);
-        ResponseCookie cookie = ResponseCookie.from("access_token", "")
+        ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from("access_token", "")
                 .httpOnly(true)
                 .secure(secure)
                 .path("/api")
-                .maxAge(0)
-                .sameSite("None")
-                .build();
-        response.addHeader("Set-Cookie", cookie.toString());
+                .maxAge(0);
+
+        // Only set SameSite=None for secure connections (requires HTTPS)
+        // For localhost, omit SameSite to allow browser default (Lax)
+        if (secure) {
+            cookieBuilder.sameSite("None");
+        }
+
+        response.addHeader("Set-Cookie", cookieBuilder.build().toString());
 
         AuthResponse authResponse = new AuthResponse("Logout successful", null);
         return ResponseEntity.ok(authResponse);
