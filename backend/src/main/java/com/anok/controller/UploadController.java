@@ -1,6 +1,7 @@
 package com.anok.controller;
 
 import jakarta.annotation.PreDestroy;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -27,12 +28,19 @@ public class UploadController {
     private final String keyPrefix;
     private final Duration presignDuration;
 
-    public UploadController() {
-        this.bucketName = requireEnv("S3_BUCKET");
-        String region = requireEnv("AWS_REGION");
-        this.keyPrefix = System.getenv().getOrDefault("S3_PREFIX", "uploads/flyers/");
-        this.presignDuration = resolvePresignDuration();
+    public UploadController(
+            @Value("${aws.s3.bucket}") String bucketName,
+            @Value("${aws.s3.region}") String region,
+            @Value("${aws.s3.prefix}") String keyPrefix,
+            @Value("${aws.s3.presign-expiration-minutes}") long presignExpirationMinutes) {
 
+        this.bucketName = bucketName;
+        this.keyPrefix = keyPrefix;
+        this.presignDuration = Duration.ofMinutes(presignExpirationMinutes);
+
+        // AWS SDK automatically uses default credential provider chain:
+        // 1. Environment variables (AWS_ACCESS_KEY_ID, AWS_SECRET_ACCESS_KEY) - for production
+        // 2. SSO credentials from ~/.aws/config - for local development
         this.s3Presigner = S3Presigner.builder()
                 .region(Region.of(region))
                 .build();
@@ -81,27 +89,6 @@ public class UploadController {
             return ResponseEntity.internalServerError()
                     .body(Map.of("error", "Upload failed", "details", e.getMessage()));
         }
-    }
-
-    private Duration resolvePresignDuration() {
-        String minutes = System.getenv("S3_PRESIGN_EXP_MINUTES");
-        if (minutes == null || minutes.isBlank()) {
-            return Duration.ofMinutes(15);
-        }
-        try {
-            long value = Long.parseLong(minutes);
-            return Duration.ofMinutes(Math.max(1, value));
-        } catch (NumberFormatException e) {
-            throw new IllegalStateException("Invalid S3_PRESIGN_EXP_MINUTES value: " + minutes);
-        }
-    }
-
-    private String requireEnv(String name) {
-        String value = System.getenv(name);
-        if (value == null || value.isBlank()) {
-            throw new IllegalStateException("Missing required environment variable: " + name);
-        }
-        return value;
     }
 
     @PreDestroy

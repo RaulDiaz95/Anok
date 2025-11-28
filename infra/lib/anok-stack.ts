@@ -14,6 +14,15 @@ export class StorageStack extends cdk.Stack {
       enforceSSL: true,
       versioned: false,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
+      cors: [
+        {
+          allowedOrigins: ["http://localhost:5173", "http://localhost:3000"],
+          allowedMethods: [s3.HttpMethods.GET, s3.HttpMethods.PUT, s3.HttpMethods.HEAD],
+          allowedHeaders: ["*"],
+          exposedHeaders: ["ETag"],
+          maxAge: 3000,
+        },
+      ],
     });
 
     const bucketAccessPolicy = new iam.ManagedPolicy(this, "BucketAccessPolicy", {
