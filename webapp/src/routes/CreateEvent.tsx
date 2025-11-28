@@ -268,24 +268,26 @@ export default function CreateEvent() {
                 <div
                   onDrop={handleDrop}
                   onDragOver={(e) => e.preventDefault()}
-                  className="border-2 border-dashed border-[#b11226]/30 rounded-xl bg-[#0f0f1a]/60 p-4 flex flex-col justify-center items-center text-center min-h-[320px]"
+                  className="border-2 border-dashed border-[#b11226]/30 rounded-xl bg-[#0f0f1a]/60 p-4 flex flex-col justify-center items-center text-center"
                 >
                   <div className="w-full flex flex-col items-center gap-4">
-                    {flyerPreview ? (
-                      <img
-                        src={flyerPreview}
-                        alt="Flyer preview"
-                        className="rounded-lg border border-[#b11226]/30 max-h-64 object-cover w-full"
-                      />
-                    ) : (
-                      <div className="text-gray-400 flex flex-col items-center gap-3">
-                        <div className="h-20 w-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                          <ImageIcon className="text-[#b11226]" size={36} />
+                    <div className="w-full aspect-[2/3] rounded-lg border border-[#b11226]/30 overflow-hidden bg-[#0f0f1a]/50 flex items-center justify-center">
+                      {flyerPreview ? (
+                        <img
+                          src={flyerPreview}
+                          alt="Flyer preview"
+                          className="w-full h-full object-cover"
+                        />
+                      ) : (
+                        <div className="text-gray-400 flex flex-col items-center gap-3">
+                          <div className="h-20 w-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                            <ImageIcon className="text-[#b11226]" size={36} />
+                          </div>
+                          <p className="text-white font-semibold">Drag & Drop Flyer</p>
+                          <p className="text-sm text-gray-500">Image files only. Or click to browse.</p>
                         </div>
-                        <p className="text-white font-semibold">Drag & Drop Flyer</p>
-                        <p className="text-sm text-gray-500">Image files only. Or click to browse.</p>
-                      </div>
-                    )}
+                      )}
+                    </div>
                     <label className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-[#b11226] hover:bg-[#d31a33] text-white rounded-lg cursor-pointer transition">
                       <Upload size={16} />
                       {isUploadingFlyer ? "Uploading..." : "Upload Flyer"}
