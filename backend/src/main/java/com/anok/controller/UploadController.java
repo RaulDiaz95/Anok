@@ -1,20 +1,20 @@
 package com.anok.controller;
+
+import jakarta.annotation.PreDestroy;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
-import org.springframework.web.multipart.MultipartFile;
 
-import software.amazon.awssdk.auth.credentials.DefaultCredentialsProvider;
-import software.amazon.awssdk.core.sync.RequestBody;
 import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.S3Client;
 import software.amazon.awssdk.services.s3.model.PutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
+import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
 
@@ -22,18 +22,19 @@ import java.util.UUID;
 @RequestMapping
 public class UploadController {
 
-    private final S3Client s3Client;
+    private final S3Presigner s3Presigner;
     private final String bucketName;
     private final String keyPrefix;
+    private final Duration presignDuration;
 
     public UploadController() {
         this.bucketName = requireEnv("S3_BUCKET");
         String region = requireEnv("AWS_REGION");
         this.keyPrefix = System.getenv().getOrDefault("S3_PREFIX", "uploads/flyers/");
+        this.presignDuration = resolvePresignDuration();
 
-        this.s3Client = S3Client.builder()
+        this.s3Presigner = S3Presigner.builder()
                 .region(Region.of(region))
-                .credentialsProvider(DefaultCredentialsProvider.create())
                 .build();
     }
 
@@ -41,34 +42,38 @@ public class UploadController {
             consumes = MediaType.MULTIPART_FORM_DATA_VALUE,
             produces = MediaType.APPLICATION_JSON_VALUE)
     public ResponseEntity<Map<String, String>> uploadFlyer(
-            @RequestParam("file") MultipartFile file) {
+            @RequestParam(value = "filename", required = false) String originalFilename,
+            @RequestParam(value = "contentType", required = false) String contentType) {
 
         try {
-            if (file.isEmpty()) {
-                return ResponseEntity.badRequest().body(Map.of("error", "File is required"));
-            }
-
             String ext = "";
-            if (file.getOriginalFilename() != null && file.getOriginalFilename().contains(".")) {
-                ext = file.getOriginalFilename().substring(file.getOriginalFilename().lastIndexOf("."));
+            if (originalFilename != null && originalFilename.contains(".")) {
+                ext = originalFilename.substring(originalFilename.lastIndexOf("."));
             }
 
             String filename = UUID.randomUUID() + ext;
             String objectKey = keyPrefix + filename;
 
-            try (InputStream inputStream = file.getInputStream()) {
-                PutObjectRequest request = PutObjectRequest.builder()
-                        .bucket(bucketName)
-                        .key(objectKey)
-                        .contentType(file.getContentType())
-                        .build();
+            PutObjectRequest putRequest = PutObjectRequest.builder()
+                    .bucket(bucketName)
+                    .key(objectKey)
+                    .contentType(contentType != null && !contentType.isBlank()
+                            ? contentType
+                            : "application/octet-stream")
+                    .build();
 
-                s3Client.putObject(request, RequestBody.fromInputStream(inputStream, file.getSize()));
-            }
+            PresignedPutObjectRequest presigned = s3Presigner.presignPutObject(
+                    PutObjectPresignRequest.builder()
+                            .signatureDuration(presignDuration)
+                            .putObjectRequest(putRequest)
+                            .build()
+            );
 
             return ResponseEntity.ok(Map.of(
+                    "uploadUrl", presigned.url().toString(),
                     "bucket", bucketName,
-                    "key", objectKey
+                    "key", objectKey,
+                    "expiresInSeconds", String.valueOf(presignDuration.toSeconds())
             ));
 
         } catch (Exception e) {
@@ -78,11 +83,29 @@ public class UploadController {
         }
     }
 
+    private Duration resolvePresignDuration() {
+        String minutes = System.getenv("S3_PRESIGN_EXP_MINUTES");
+        if (minutes == null || minutes.isBlank()) {
+            return Duration.ofMinutes(15);
+        }
+        try {
+            long value = Long.parseLong(minutes);
+            return Duration.ofMinutes(Math.max(1, value));
+        } catch (NumberFormatException e) {
+            throw new IllegalStateException("Invalid S3_PRESIGN_EXP_MINUTES value: " + minutes);
+        }
+    }
+
     private String requireEnv(String name) {
         String value = System.getenv(name);
         if (value == null || value.isBlank()) {
             throw new IllegalStateException("Missing required environment variable: " + name);
         }
         return value;
+    }
+
+    @PreDestroy
+    public void close() {
+        s3Presigner.close();
     }
 }
