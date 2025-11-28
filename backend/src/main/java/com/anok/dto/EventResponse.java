@@ -1,6 +1,10 @@
 package com.anok.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+
+import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -9,13 +13,23 @@ public class EventResponse {
 
     private UUID id;
     private String title;
-    private String description;
+    private String flyerUrl;
+    private LocalDate eventDate;
+    private LocalTime startTime;
+    private Integer eventLengthHours;
+    private LocalTime endTime;
+    @JsonProperty("isLive")
+    private Boolean isLive;
     private LocalDateTime eventDateTime;
     private String venueName;
     private String venueAddress;
+    private String about;
     private Integer capacity;
     private String ageRestriction;
+    private Boolean allAges;
+    private Boolean alcohol;
     private List<String> genres = new ArrayList<>();
+    private List<PerformerResponse> performers = new ArrayList<>();
     private UUID ownerId;
     private String ownerName;
 
@@ -35,12 +49,52 @@ public class EventResponse {
         this.title = title;
     }
 
-    public String getDescription() {
-        return description;
+    public String getFlyerUrl() {
+        return flyerUrl;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public void setFlyerUrl(String flyerUrl) {
+        this.flyerUrl = flyerUrl;
+    }
+
+    public LocalDate getEventDate() {
+        return eventDate;
+    }
+
+    public void setEventDate(LocalDate eventDate) {
+        this.eventDate = eventDate;
+    }
+
+    public LocalTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public Integer getEventLengthHours() {
+        return eventLengthHours;
+    }
+
+    public void setEventLengthHours(Integer eventLengthHours) {
+        this.eventLengthHours = eventLengthHours;
+    }
+
+    public LocalTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalTime endTime) {
+        this.endTime = endTime;
+    }
+
+    public Boolean getLive() {
+        return isLive;
+    }
+
+    public void setLive(Boolean live) {
+        isLive = live;
     }
 
     public LocalDateTime getEventDateTime() {
@@ -67,6 +121,14 @@ public class EventResponse {
         this.venueAddress = venueAddress;
     }
 
+    public String getAbout() {
+        return about;
+    }
+
+    public void setAbout(String about) {
+        this.about = about;
+    }
+
     public Integer getCapacity() {
         return capacity;
     }
@@ -83,12 +145,36 @@ public class EventResponse {
         this.ageRestriction = ageRestriction;
     }
 
+    public Boolean getAllAges() {
+        return allAges;
+    }
+
+    public void setAllAges(Boolean allAges) {
+        this.allAges = allAges;
+    }
+
+    public Boolean getAlcohol() {
+        return alcohol;
+    }
+
+    public void setAlcohol(Boolean alcohol) {
+        this.alcohol = alcohol;
+    }
+
     public List<String> getGenres() {
         return genres;
     }
 
     public void setGenres(List<String> genres) {
         this.genres = genres;
+    }
+
+    public List<PerformerResponse> getPerformers() {
+        return performers;
+    }
+
+    public void setPerformers(List<PerformerResponse> performers) {
+        this.performers = performers;
     }
 
     public UUID getOwnerId() {
@@ -105,5 +191,53 @@ public class EventResponse {
 
     public void setOwnerName(String ownerName) {
         this.ownerName = ownerName;
+    }
+
+    public static class PerformerResponse {
+        private UUID id;
+        private String performerName;
+        private String genre1;
+        private String genre2;
+        private String performerLink;
+
+        public UUID getId() {
+            return id;
+        }
+
+        public void setId(UUID id) {
+            this.id = id;
+        }
+
+        public String getPerformerName() {
+            return performerName;
+        }
+
+        public void setPerformerName(String performerName) {
+            this.performerName = performerName;
+        }
+
+        public String getGenre1() {
+            return genre1;
+        }
+
+        public void setGenre1(String genre1) {
+            this.genre1 = genre1;
+        }
+
+        public String getGenre2() {
+            return genre2;
+        }
+
+        public void setGenre2(String genre2) {
+            this.genre2 = genre2;
+        }
+
+        public String getPerformerLink() {
+            return performerLink;
+        }
+
+        public void setPerformerLink(String performerLink) {
+            this.performerLink = performerLink;
+        }
     }
 }

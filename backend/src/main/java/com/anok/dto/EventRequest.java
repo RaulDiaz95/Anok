@@ -1,8 +1,11 @@
 package com.anok.dto;
 
+import com.fasterxml.jackson.annotation.JsonProperty;
+import jakarta.validation.Valid;
 import jakarta.validation.constraints.*;
 
-import java.time.LocalDateTime;
+import java.time.LocalDate;
+import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
@@ -12,12 +15,23 @@ public class EventRequest {
     @Size(max = 255)
     private String title;
 
-    @Size(max = 4000)
-    private String description;
+    private String flyerUrl;
 
     @NotNull
-    @Future
-    private LocalDateTime eventDateTime;
+    private LocalDate eventDate;
+
+    @NotNull
+    private LocalTime startTime;
+
+    @NotNull
+    @Min(0)
+    private Integer eventLengthHours;
+
+    private LocalTime endTime;
+
+    @NotNull
+    @JsonProperty("isLive")
+    private Boolean isLive;
 
     @NotBlank
     @Size(max = 255)
@@ -26,16 +40,26 @@ public class EventRequest {
     @NotBlank
     private String venueAddress;
 
+    @NotBlank
+    @Size(max = 4000)
+    private String about;
+
     @NotNull
     @Min(0)
     private Integer capacity;
 
-    @NotBlank
-    @Size(max = 50)
-    private String ageRestriction;
+    @NotNull
+    private Boolean allAges;
+
+    @NotNull
+    private Boolean alcohol;
 
     @Size(max = 50)
     private List<@NotBlank @Size(max = 25) String> genres = new ArrayList<>();
+
+    @NotEmpty
+    @Valid
+    private List<PerformerRequest> performers = new ArrayList<>();
 
     public String getTitle() {
         return title;
@@ -45,20 +69,52 @@ public class EventRequest {
         this.title = title;
     }
 
-    public String getDescription() {
-        return description;
+    public String getFlyerUrl() {
+        return flyerUrl;
     }
 
-    public void setDescription(String description) {
-        this.description = description;
+    public void setFlyerUrl(String flyerUrl) {
+        this.flyerUrl = flyerUrl;
     }
 
-    public LocalDateTime getEventDateTime() {
-        return eventDateTime;
+    public LocalDate getEventDate() {
+        return eventDate;
     }
 
-    public void setEventDateTime(LocalDateTime eventDateTime) {
-        this.eventDateTime = eventDateTime;
+    public void setEventDate(LocalDate eventDate) {
+        this.eventDate = eventDate;
+    }
+
+    public LocalTime getStartTime() {
+        return startTime;
+    }
+
+    public void setStartTime(LocalTime startTime) {
+        this.startTime = startTime;
+    }
+
+    public Integer getEventLengthHours() {
+        return eventLengthHours;
+    }
+
+    public void setEventLengthHours(Integer eventLengthHours) {
+        this.eventLengthHours = eventLengthHours;
+    }
+
+    public LocalTime getEndTime() {
+        return endTime;
+    }
+
+    public void setEndTime(LocalTime endTime) {
+        this.endTime = endTime;
+    }
+
+    public Boolean getLive() {
+        return isLive;
+    }
+
+    public void setLive(Boolean live) {
+        isLive = live;
     }
 
     public String getVenueName() {
@@ -77,6 +133,14 @@ public class EventRequest {
         this.venueAddress = venueAddress;
     }
 
+    public String getAbout() {
+        return about;
+    }
+
+    public void setAbout(String about) {
+        this.about = about;
+    }
+
     public Integer getCapacity() {
         return capacity;
     }
@@ -85,12 +149,20 @@ public class EventRequest {
         this.capacity = capacity;
     }
 
-    public String getAgeRestriction() {
-        return ageRestriction;
+    public Boolean getAllAges() {
+        return allAges;
     }
 
-    public void setAgeRestriction(String ageRestriction) {
-        this.ageRestriction = ageRestriction;
+    public void setAllAges(Boolean allAges) {
+        this.allAges = allAges;
+    }
+
+    public Boolean getAlcohol() {
+        return alcohol;
+    }
+
+    public void setAlcohol(Boolean alcohol) {
+        this.alcohol = alcohol;
     }
 
     public List<String> getGenres() {
@@ -99,5 +171,60 @@ public class EventRequest {
 
     public void setGenres(List<String> genres) {
         this.genres = genres;
+    }
+
+    public List<PerformerRequest> getPerformers() {
+        return performers;
+    }
+
+    public void setPerformers(List<PerformerRequest> performers) {
+        this.performers = performers;
+    }
+
+    public static class PerformerRequest {
+        @NotBlank
+        @Size(max = 255)
+        private String performerName;
+
+        @Size(max = 100)
+        private String genre1;
+
+        @Size(max = 100)
+        private String genre2;
+
+        @Size(max = 1000)
+        private String performerLink;
+
+        public String getPerformerName() {
+            return performerName;
+        }
+
+        public void setPerformerName(String performerName) {
+            this.performerName = performerName;
+        }
+
+        public String getGenre1() {
+            return genre1;
+        }
+
+        public void setGenre1(String genre1) {
+            this.genre1 = genre1;
+        }
+
+        public String getGenre2() {
+            return genre2;
+        }
+
+        public void setGenre2(String genre2) {
+            this.genre2 = genre2;
+        }
+
+        public String getPerformerLink() {
+            return performerLink;
+        }
+
+        public void setPerformerLink(String performerLink) {
+            this.performerLink = performerLink;
+        }
     }
 }

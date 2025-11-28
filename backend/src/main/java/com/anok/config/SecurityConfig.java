@@ -64,6 +64,7 @@ public class SecurityConfig {
                                 "/v3/api-docs/**"        // OpenAPI v3 docs
                         ).permitAll()
                         .requestMatchers(HttpMethod.GET, "/events/**").permitAll()
+                        .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
 
                         // Admin-only endpoints (future use)
                         .requestMatchers("/admin/**").hasRole("ADMIN")
