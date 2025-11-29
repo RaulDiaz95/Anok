@@ -53,6 +53,14 @@ security:
     encoder: bcrypt
     bcrypt-strength: 12
 
+# AWS S3 Configuration
+aws:
+  s3:
+    bucket: ${S3_BUCKET:anok-uploads}
+    region: ${AWS_REGION:us-east-2}
+    prefix: ${S3_PREFIX:uploads/}
+    presign-expiration-minutes: ${S3_PRESIGN_EXP_MINUTES:15}
+
 # OpenAPI/Swagger Documentation
 springdoc:
   api-docs:

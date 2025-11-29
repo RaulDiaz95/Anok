@@ -14,6 +14,15 @@ export class StorageStack extends cdk.Stack {
       enforceSSL: true,
       versioned: false,
       removalPolicy: cdk.RemovalPolicy.RETAIN,
+      cors: [
+        {
+          allowedOrigins: ["http://localhost:5173", "http://localhost:3000"],
+          allowedMethods: [s3.HttpMethods.GET, s3.HttpMethods.PUT, s3.HttpMethods.HEAD],
+          allowedHeaders: ["*"],
+          exposedHeaders: ["ETag"],
+          maxAge: 3000,
+        },
+      ],
     });
 
     const bucketAccessPolicy = new iam.ManagedPolicy(this, "BucketAccessPolicy", {
@@ -48,22 +57,6 @@ export class StorageStack extends cdk.Stack {
       })
     );
 
-    const accessKey = new iam.CfnAccessKey(this, "BucketUserAccessKey", {
-      userName: bucketUser.userName,
-    });
-
-    const credentialsSecret = new secretsmanager.Secret(this, "BucketUserCredentials", {
-      description: "Access keys for bucket-app-user to access the private bucket",
-      secretObjectValue: {
-        accessKeyId: cdk.SecretValue.unsafePlainText(accessKey.ref),
-        secretAccessKey: cdk.SecretValue.unsafePlainText(accessKey.attrSecretAccessKey),
-        iamUserName: cdk.SecretValue.unsafePlainText(bucketUser.userName),
-        iamRoleArn: cdk.SecretValue.unsafePlainText(accessRole.roleArn),
-        bucketName: cdk.SecretValue.unsafePlainText(bucket.bucketName),
-      },
-    });
-    credentialsSecret.applyRemovalPolicy(cdk.RemovalPolicy.RETAIN);
-
     new cdk.CfnOutput(this, "PrivateBucketName", {
       value: bucket.bucketName,
     });
@@ -74,11 +67,6 @@ export class StorageStack extends cdk.Stack {
 
     new cdk.CfnOutput(this, "BucketUserName", {
       value: bucketUser.userName,
-    });
-
-    new cdk.CfnOutput(this, "CredentialsSecretArn", {
-      value: credentialsSecret.secretArn,
-      description: "Secret storing the access key ID and secret access key for the bucket-app-user",
     });
   }
 }

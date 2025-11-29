@@ -5,6 +5,7 @@
   "private": true,
   "scripts": {
     "dev": "docker compose up --build -d && cd webapp && pnpm dev",
+    "dev:skip-aws": "docker compose up --build -d && cd webapp && pnpm dev",
     "stop": "docker compose down",
     "clean": "docker compose down -v",
     "install:webapp": "cd webapp && pnpm install",
