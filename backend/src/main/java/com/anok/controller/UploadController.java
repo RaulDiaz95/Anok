@@ -1,6 +1,5 @@
 package com.anok.controller;
 
-import jakarta.annotation.PreDestroy;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -8,34 +7,20 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
-import software.amazon.awssdk.regions.Region;
-import software.amazon.awssdk.services.s3.model.PutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.S3Presigner;
+import com.anok.service.S3Service;
+import com.anok.service.S3Service.UploadPresign;
 import software.amazon.awssdk.services.s3.presigner.model.PresignedPutObjectRequest;
-import software.amazon.awssdk.services.s3.presigner.model.PutObjectPresignRequest;
 
-import java.time.Duration;
 import java.util.Map;
-import java.util.UUID;
 
 @RestController
 @RequestMapping
 public class UploadController {
 
-    private final S3Presigner s3Presigner;
-    private final String bucketName;
-    private final String keyPrefix;
-    private final Duration presignDuration;
+    private final S3Service s3Service;
 
-    public UploadController() {
-        this.bucketName = requireEnv("S3_BUCKET");
-        String region = requireEnv("AWS_REGION");
-        this.keyPrefix = System.getenv().getOrDefault("S3_PREFIX", "uploads/flyers/");
-        this.presignDuration = resolvePresignDuration();
-
-        this.s3Presigner = S3Presigner.builder()
-                .region(Region.of(region))
-                .build();
+    public UploadController(S3Service s3Service) {
+        this.s3Service = s3Service;
     }
 
     @PostMapping(value = "/upload-flyer",
@@ -46,34 +31,14 @@ public class UploadController {
             @RequestParam(value = "contentType", required = false) String contentType) {
 
         try {
-            String ext = "";
-            if (originalFilename != null && originalFilename.contains(".")) {
-                ext = originalFilename.substring(originalFilename.lastIndexOf("."));
-            }
-
-            String filename = UUID.randomUUID() + ext;
-            String objectKey = keyPrefix + filename;
-
-            PutObjectRequest putRequest = PutObjectRequest.builder()
-                    .bucket(bucketName)
-                    .key(objectKey)
-                    .contentType(contentType != null && !contentType.isBlank()
-                            ? contentType
-                            : "application/octet-stream")
-                    .build();
-
-            PresignedPutObjectRequest presigned = s3Presigner.presignPutObject(
-                    PutObjectPresignRequest.builder()
-                            .signatureDuration(presignDuration)
-                            .putObjectRequest(putRequest)
-                            .build()
-            );
+            UploadPresign uploadPresign = s3Service.createUploadPresign(originalFilename, contentType);
+            PresignedPutObjectRequest presigned = uploadPresign.presignedRequest();
 
             return ResponseEntity.ok(Map.of(
                     "uploadUrl", presigned.url().toString(),
-                    "bucket", bucketName,
-                    "key", objectKey,
-                    "expiresInSeconds", String.valueOf(presignDuration.toSeconds())
+                    "bucket", s3Service.getBucketName(),
+                    "key", uploadPresign.objectKey(),
+                    "expiresInSeconds", String.valueOf(s3Service.getPresignDuration().toSeconds())
             ));
 
         } catch (Exception e) {
@@ -83,29 +48,4 @@ public class UploadController {
         }
     }
 
-    private Duration resolvePresignDuration() {
-        String minutes = System.getenv("S3_PRESIGN_EXP_MINUTES");
-        if (minutes == null || minutes.isBlank()) {
-            return Duration.ofMinutes(15);
-        }
-        try {
-            long value = Long.parseLong(minutes);
-            return Duration.ofMinutes(Math.max(1, value));
-        } catch (NumberFormatException e) {
-            throw new IllegalStateException("Invalid S3_PRESIGN_EXP_MINUTES value: " + minutes);
-        }
-    }
-
-    private String requireEnv(String name) {
-        String value = System.getenv(name);
-        if (value == null || value.isBlank()) {
-            throw new IllegalStateException("Missing required environment variable: " + name);
-        }
-        return value;
-    }
-
-    @PreDestroy
-    public void close() {
-        s3Presigner.close();
-    }
 }

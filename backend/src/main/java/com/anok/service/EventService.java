@@ -24,10 +24,12 @@ public class EventService {
 
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    private final S3Service s3Service;
 
-    public EventService(EventRepository eventRepository, UserRepository userRepository) {
+    public EventService(EventRepository eventRepository, UserRepository userRepository, S3Service s3Service) {
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
+        this.s3Service = s3Service;
     }
 
     public EventResponse createEvent(EventRequest request, String ownerEmail) {
@@ -83,7 +85,7 @@ public class EventService {
         EventResponse response = new EventResponse();
         response.setId(event.getId());
         response.setTitle(event.getTitle());
-        response.setFlyerUrl(event.getFlyerUrl() == null ? "" : event.getFlyerUrl());
+        response.setFlyerUrl(s3Service.generateSignedGetUrl(event.getFlyerUrl()));
         response.setEventDate(event.getEventDate());
         response.setStartTime(event.getStartTime());
         response.setEventLengthHours(event.getEventLengthHours());
