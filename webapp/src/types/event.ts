@@ -26,6 +26,9 @@ export interface Event {
   title: string;
   venueName: string;
   venueAddress: string;
+  venueZipCode: string;
+  venueState: string;
+  venueCountry: string;
   capacity: number;
   ageRestriction?: string;
   allAges: boolean;
@@ -47,6 +50,9 @@ export interface CreateEventInput {
   title: string;
   venueName: string;
   venueAddress: string;
+  venueZipCode: string;
+  venueState: string;
+  venueCountry: string;
   capacity: number;
   allAges: boolean;
   alcohol: boolean;

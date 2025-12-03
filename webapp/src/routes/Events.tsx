@@ -6,6 +6,7 @@ import { format, parseISO } from "date-fns";
 import Navbar from "../components/NavBar";
 import { Link } from "react-router-dom";
 import { CalendarDays, MapPin, Users } from "lucide-react";
+import { FlyerFrame } from "../components/FlyerFrame";
 
 export default function Events() {
   const [events, setEvents] = useState<Event[]>([]);
@@ -18,7 +19,7 @@ export default function Events() {
       setError("");
       try {
         const data = await eventService.list();
-        setEvents(data);
+        setEvents(data.filter((evt) => evt.isLive));
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load events");
       } finally {
@@ -43,6 +44,16 @@ const formatDateTime = (event: Event) => {
     } catch {
       return time;
     }
+  };
+
+  const buildAddress = (event: Event) => {
+    const parts = [
+      event.venueAddress,
+      event.venueState,
+      event.venueCountry,
+      event.venueZipCode,
+    ].filter((part) => part && part.trim() !== "");
+    return parts.join(", ") || "Address to be confirmed";
   };
 
   return (
@@ -126,11 +137,11 @@ const formatDateTime = (event: Event) => {
                 </div>
 
                 {event.flyerUrl && event.flyerUrl.trim() !== "" && (
-                  <div className="w-full overflow-hidden rounded-xl border border-[#b11226]/20">
-                    <img
+                  <div className="w-full flex justify-center">
+                    <FlyerFrame
                       src={event.flyerUrl}
                       alt={`${event.title} flyer`}
-                      className="w-full h-56 object-cover"
+                      size="lg"
                     />
                   </div>
                 )}
@@ -159,7 +170,7 @@ const formatDateTime = (event: Event) => {
                     <MapPin size={16} className="text-[#b11226]" />
                     {event.venueName}
                   </p>
-                  <p className="text-gray-400 ml-6">{event.venueAddress}</p>
+                  <p className="text-gray-400 ml-6">{buildAddress(event)}</p>
                 </div>
 
                 <div className="flex flex-wrap gap-4 text-sm text-gray-400">

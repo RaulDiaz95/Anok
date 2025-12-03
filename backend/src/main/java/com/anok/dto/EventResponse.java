@@ -23,6 +23,9 @@ public class EventResponse {
     private LocalDateTime eventDateTime;
     private String venueName;
     private String venueAddress;
+    private String venueZipCode;
+    private String venueState;
+    private String venueCountry;
     private String about;
     private Integer capacity;
     private String ageRestriction;
@@ -119,6 +122,30 @@ public class EventResponse {
 
     public void setVenueAddress(String venueAddress) {
         this.venueAddress = venueAddress;
+    }
+
+    public String getVenueZipCode() {
+        return venueZipCode;
+    }
+
+    public void setVenueZipCode(String venueZipCode) {
+        this.venueZipCode = venueZipCode;
+    }
+
+    public String getVenueState() {
+        return venueState;
+    }
+
+    public void setVenueState(String venueState) {
+        this.venueState = venueState;
+    }
+
+    public String getVenueCountry() {
+        return venueCountry;
+    }
+
+    public void setVenueCountry(String venueCountry) {
+        this.venueCountry = venueCountry;
     }
 
     public String getAbout() {

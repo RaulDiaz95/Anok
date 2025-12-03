@@ -36,13 +36,58 @@ public class EventService {
         User owner = userRepository.findByEmailNormalized(ownerEmail.toLowerCase())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        Event event = new Event();
+        event.setOwner(owner);
+        applyEventRequest(event, request);
+
+        Event saved = eventRepository.save(event);
+        return toResponse(saved);
+    }
+
+    public EventResponse updateEvent(UUID eventId, EventRequest request, String ownerEmail) {
+        Event event = eventRepository.findByIdAndOwner_EmailNormalized(eventId, ownerEmail.toLowerCase())
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found or not owned by user"));
+        applyEventRequest(event, request);
+        Event saved = eventRepository.save(event);
+        return toResponse(saved);
+    }
+
+    public List<EventResponse> listUserEvents(String ownerEmail) {
+        String normalizedEmail = ownerEmail.toLowerCase();
+        return eventRepository.findAllByOwner_EmailNormalizedOrderByEventDateTimeDesc(normalizedEmail)
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    public EventResponse updateLiveStatus(UUID eventId, Boolean isLive, String ownerEmail) {
+        Event event = eventRepository.findByIdAndOwner_EmailNormalized(eventId, ownerEmail.toLowerCase())
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found or not owned by user"));
+        event.setLive(Boolean.TRUE.equals(isLive));
+        Event saved = eventRepository.save(event);
+        return toResponse(saved);
+    }
+
+    public List<EventResponse> listUpcomingEvents() {
+        LocalDateTime now = LocalDateTime.now();
+        return eventRepository.findAllByEventDateTimeAfterAndIsLiveTrueOrderByEventDateTimeAsc(now)
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    public EventResponse getEvent(UUID id) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        return toResponse(event);
+    }
+
+    private void applyEventRequest(Event event, EventRequest request) {
         LocalTime computedEndTime = request.getEndTime();
         if (computedEndTime == null && request.getStartTime() != null && request.getEventLengthHours() != null) {
             computedEndTime = request.getStartTime().plusHours(request.getEventLengthHours());
         }
 
-        Event event = new Event();
-        event.setOwner(owner);
         event.setTitle(request.getTitle().trim());
         event.setDescription(request.getAbout().trim());
         event.setAbout(request.getAbout().trim());
@@ -56,29 +101,18 @@ public class EventService {
         event.setLive(request.getLive());
         event.setVenueName(request.getVenueName().trim());
         event.setVenueAddress(request.getVenueAddress().trim());
+        event.setVenueZipCode(request.getVenueZipCode().trim());
+        event.setVenueState(request.getVenueState().trim());
+        event.setVenueCountry(request.getVenueCountry().trim());
         event.setCapacity(request.getCapacity());
         event.setAllAges(request.getAllAges());
         event.setAlcohol(request.getAlcohol());
         event.setAgeRestriction(Boolean.TRUE.equals(request.getAllAges()) ? "ALL" : "18+");
         applyGenres(event, request.getGenres());
         applyPerformers(event, request.getPerformers());
-
-        Event saved = eventRepository.save(event);
-        return toResponse(saved);
-    }
-
-    public List<EventResponse> listUpcomingEvents() {
-        LocalDateTime now = LocalDateTime.now();
-        return eventRepository.findAllByEventDateTimeAfterOrderByEventDateTimeAsc(now)
-                .stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
-    }
-
-    public EventResponse getEvent(UUID id) {
-        Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
-        return toResponse(event);
+        if (request.getEventDate() != null && request.getStartTime() != null) {
+            event.setEventDateTime(request.getEventDate().atTime(request.getStartTime()));
+        }
     }
 
     private EventResponse toResponse(Event event) {
@@ -94,6 +128,9 @@ public class EventService {
         response.setEventDateTime(event.getEventDateTime());
         response.setVenueName(event.getVenueName());
         response.setVenueAddress(event.getVenueAddress());
+        response.setVenueZipCode(event.getVenueZipCode());
+        response.setVenueState(event.getVenueState());
+        response.setVenueCountry(event.getVenueCountry());
         response.setAbout(event.getAbout());
         response.setCapacity(event.getCapacity());
         response.setAllAges(event.getAllAges());

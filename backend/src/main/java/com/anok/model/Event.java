@@ -57,6 +57,15 @@ public class Event {
     @Column(name = "venue_address", nullable = false, columnDefinition = "TEXT")
     private String venueAddress;
 
+    @Column(name = "venue_zip_code", nullable = false, length = 50)
+    private String venueZipCode = "";
+
+    @Column(name = "venue_state", nullable = false, length = 255)
+    private String venueState = "";
+
+    @Column(name = "venue_country", nullable = false, length = 255)
+    private String venueCountry = "";
+
     @Column(name = "about", nullable = false, columnDefinition = "TEXT")
     private String about = "";
 
@@ -207,6 +216,30 @@ public class Event {
 
     public void setVenueAddress(String venueAddress) {
         this.venueAddress = venueAddress;
+    }
+
+    public String getVenueZipCode() {
+        return venueZipCode;
+    }
+
+    public void setVenueZipCode(String venueZipCode) {
+        this.venueZipCode = venueZipCode;
+    }
+
+    public String getVenueState() {
+        return venueState;
+    }
+
+    public void setVenueState(String venueState) {
+        this.venueState = venueState;
+    }
+
+    public String getVenueCountry() {
+        return venueCountry;
+    }
+
+    public void setVenueCountry(String venueCountry) {
+        this.venueCountry = venueCountry;
     }
 
     public Integer getCapacity() {

@@ -32,6 +32,12 @@ export default function Navbar() {
     navigate("/");
   };
 
+  const handleMyEvents = () => {
+    navigate("/events/mine");
+    setProfileOpen(false);
+    setMenuOpen(false);
+  };
+
   const handleCreateEvent = () => {
     navigate("/events/new");
   };
@@ -118,6 +124,13 @@ export default function Navbar() {
                     <p className="text-white font-medium truncate">{user?.email}</p>
                   </div>
                   <button
+                    onClick={handleMyEvents}
+                    className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-[#b11226]/10 transition-colors text-white border-b border-[#b11226]/20"
+                  >
+                    <User size={16} />
+                    <span>My Events</span>
+                  </button>
+                  <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-[#b11226]/10 transition-colors text-white"
                   >
@@ -190,6 +203,14 @@ export default function Navbar() {
                 <li className="border-t border-[#b11226]/20 pt-4 w-full text-center">
                   <div className="text-gray-400 text-sm mb-2">Signed in as</div>
                   <div className="text-[#b11226] font-semibold">{user?.fullName}</div>
+                </li>
+                <li className="w-full px-6">
+                  <button
+                    onClick={handleMyEvents}
+                    className="w-full px-4 py-2 border border-[#b11226]/40 rounded-lg text-white hover:bg-[#b11226]/10 transition"
+                  >
+                    My Events
+                  </button>
                 </li>
                 <li>
                   <button

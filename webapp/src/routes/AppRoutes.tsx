@@ -5,6 +5,7 @@ import Login from "./Login";
 import Signup from "./Signup";
 import CreateEvent from "./CreateEvent";
 import Events from "./Events";
+import MyEvents from "./MyEvents";
 import ScrollToTop from "../components/ScrollToTop";
 
 export default function AppRoutes() {
@@ -17,6 +18,8 @@ export default function AppRoutes() {
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
         <Route path="/events/new" element={<CreateEvent />} />
+        <Route path="/events/:id/edit" element={<CreateEvent />} />
+        <Route path="/events/mine" element={<MyEvents />} />
         <Route path="/events" element={<Events />} />
       </Routes>
     </BrowserRouter>

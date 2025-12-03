@@ -41,6 +41,18 @@ public class EventRequest {
     private String venueAddress;
 
     @NotBlank
+    @Size(max = 50)
+    private String venueZipCode;
+
+    @NotBlank
+    @Size(max = 255)
+    private String venueState;
+
+    @NotBlank
+    @Size(max = 255)
+    private String venueCountry;
+
+    @NotBlank
     @Size(max = 4000)
     private String about;
 
@@ -131,6 +143,30 @@ public class EventRequest {
 
     public void setVenueAddress(String venueAddress) {
         this.venueAddress = venueAddress;
+    }
+
+    public String getVenueZipCode() {
+        return venueZipCode;
+    }
+
+    public void setVenueZipCode(String venueZipCode) {
+        this.venueZipCode = venueZipCode;
+    }
+
+    public String getVenueState() {
+        return venueState;
+    }
+
+    public void setVenueState(String venueState) {
+        this.venueState = venueState;
+    }
+
+    public String getVenueCountry() {
+        return venueCountry;
+    }
+
+    public void setVenueCountry(String venueCountry) {
+        this.venueCountry = venueCountry;
     }
 
     public String getAbout() {

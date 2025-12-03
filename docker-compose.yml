@@ -32,14 +32,15 @@ services:
     volumes:
       - ./backend:/app
       - maven_repo:/root/.m2
-      # Mount AWS credentials for local development with SSO
-      - ${HOME}/.aws:/root/.aws:ro
+      # Mount AWS credentials for local development with SSO (Windows-friendly)
+      - ${USERPROFILE}/.aws:/root/.aws:ro
     container_name: anok-backend
     restart: unless-stopped
     depends_on:
       postgres:
         condition: service_healthy
     environment:
+      HOME: /root
       SPRING_PROFILES_ACTIVE: ${SPRING_PROFILES_ACTIVE:-dev}
       DB_HOST: postgres
       DB_PORT: 5432
@@ -47,7 +48,7 @@ services:
       DB_USER: ${POSTGRES_USER:-postgres}
       DB_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
       JWT_SECRET: ${JWT_SECRET:-your-secret-key-change-in-production}
-      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5174,http://localhost:3000}
+      CORS_ALLOWED_ORIGINS: ${CORS_ALLOWED_ORIGINS:-http://localhost:5173,http://localhost:5173,http://localhost:3000}
       # AWS Configuration (uses SSO locally, env vars in production)
       AWS_PROFILE: ${AWS_PROFILE:-default}
       S3_BUCKET: ${S3_BUCKET:-}
