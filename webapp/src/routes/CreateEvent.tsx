@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   ArrowLeft,
@@ -14,9 +14,12 @@ import { eventService } from "../services/eventService";
 import { useAuth } from "../contexts/AuthContext";
 import Navbar from "../components/NavBar";
 import { PerformerInput } from "../types/event";
+import { FlyerFrame } from "../components/FlyerFrame";
 
 export default function CreateEvent() {
   const navigate = useNavigate();
+  const { id: eventId } = useParams<{ id: string }>();
+  const isEdit = Boolean(eventId);
   const { isAuthenticated, isLoading } = useAuth();
 
   const [title, setTitle] = useState("");
@@ -30,6 +33,9 @@ export default function CreateEvent() {
   const [isLive, setIsLive] = useState(true);
   const [venueName, setVenueName] = useState("");
   const [venueAddress, setVenueAddress] = useState("");
+  const [venueZipCode, setVenueZipCode] = useState("");
+  const [venueState, setVenueState] = useState("");
+  const [venueCountry, setVenueCountry] = useState("");
   const [about, setAbout] = useState("");
   const [capacity, setCapacity] = useState(0);
   const [allAges, setAllAges] = useState(true);
@@ -44,12 +50,58 @@ export default function CreateEvent() {
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
+  const [isLoadingEvent, setIsLoadingEvent] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
       navigate("/login");
     }
   }, [isAuthenticated, isLoading, navigate]);
+
+  useEffect(() => {
+    if (!isEdit || !eventId || !isAuthenticated) return;
+    const loadEvent = async () => {
+      setIsLoadingEvent(true);
+      setError("");
+      try {
+        const data = await eventService.get(eventId);
+        setTitle(data.title || "");
+        setEventDate(data.eventDate || "");
+        setStartTime(toTimeInput(data.startTime));
+        setEventLengthHours(data.eventLengthHours ?? 0);
+        setEndTime(toTimeInput(data.endTime));
+        setEndTimeEdited(Boolean(data.endTime));
+        setFlyerUrl(data.flyerUrl || "");
+        setFlyerPreview(data.flyerUrl || "");
+        setIsLive(Boolean(data.isLive));
+        setVenueName(data.venueName || "");
+        setVenueAddress(data.venueAddress || "");
+        setVenueZipCode(data.venueZipCode || "");
+        setVenueState(data.venueState || "");
+        setVenueCountry(data.venueCountry || "");
+        setAbout(data.about || "");
+        setCapacity(data.capacity ?? 0);
+        setAllAges(Boolean(data.allAges));
+        setAlcohol(Boolean(data.alcohol));
+        setGenres(data.genres || []);
+        setPerformers(
+          data.performers && data.performers.length
+            ? data.performers.map((p) => ({
+                performerName: p.performerName || "",
+                genre1: p.genre1 || "",
+                genre2: p.genre2 || "",
+                performerLink: p.performerLink || "",
+              }))
+            : [{ performerName: "", genre1: "", genre2: "", performerLink: "" }]
+        );
+      } catch (err) {
+        setError(err instanceof Error ? err.message : "Failed to load event");
+      } finally {
+        setIsLoadingEvent(false);
+      }
+    };
+    loadEvent();
+  }, [eventId, isAuthenticated, isEdit]);
 
   useEffect(() => {
     if (startTime && eventLengthHours > 0 && !endTimeEdited) {
@@ -65,12 +117,27 @@ export default function CreateEvent() {
       startTime &&
       eventLengthHours > 0 &&
       venueName.trim() &&
+      venueAddress.trim() &&
+      venueZipCode.trim() &&
+      venueState.trim() &&
+      venueCountry.trim() &&
       performers.some((p) => p.performerName.trim()),
-    [title, eventDate, startTime, eventLengthHours, venueName, performers]
+    [
+      title,
+      eventDate,
+      startTime,
+      eventLengthHours,
+      venueName,
+      venueAddress,
+      venueZipCode,
+      venueState,
+      venueCountry,
+      performers,
+    ]
   );
 
   const handleCancel = () => {
-    navigate("/events");
+    navigate(isEdit ? "/events/mine" : "/events");
   };
 
   const handleUploadFlyer = async (file: File) => {
@@ -180,6 +247,9 @@ export default function CreateEvent() {
         isLive,
         venueName: venueName.trim(),
         venueAddress: venueAddress.trim(),
+        venueZipCode: venueZipCode.trim(),
+        venueState: venueState.trim(),
+        venueCountry: venueCountry.trim(),
         about: about.trim(),
         capacity,
         allAges,
@@ -188,20 +258,26 @@ export default function CreateEvent() {
         genres,
       };
 
-      await eventService.create(payload);
-      setSuccess("Event created successfully!");
-      setTimeout(() => navigate("/events"), 1200);
+      if (isEdit && eventId) {
+        await eventService.update(eventId, payload);
+        setSuccess("Event updated successfully!");
+        setTimeout(() => navigate("/events/mine"), 1200);
+      } else {
+        await eventService.create(payload);
+        setSuccess("Event created successfully!");
+        setTimeout(() => navigate("/events"), 1200);
+      }
     } catch (err) {
-      setError(err instanceof Error ? err.message : "Failed to create event");
+      setError(err instanceof Error ? err.message : "Failed to save event");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isLoading) {
+  if (isLoading || isLoadingEvent) {
     return (
       <div className="min-h-screen flex items-center justify-center text-white">
-        Checking session...
+        {isLoading ? "Checking session..." : "Loading event..."}
       </div>
     );
   }
@@ -234,7 +310,7 @@ export default function CreateEvent() {
                   </button>
                 </p>
                 <h1 className="text-3xl font-bold text-white mb-2">
-                  Register a New Event
+                  {isEdit ? "Edit Event" : "Register a New Event"}
                 </h1>
                 <p className="text-gray-400">
                   Provide the details for your showcase: flyer, performers, timing, venue, and safety notes.
@@ -268,38 +344,33 @@ export default function CreateEvent() {
                 <div
                   onDrop={handleDrop}
                   onDragOver={(e) => e.preventDefault()}
-                  className="border-2 border-dashed border-[#b11226]/30 rounded-xl bg-[#0f0f1a]/60 p-4 flex flex-col justify-center items-center text-center"
+                  className="border-2 border-dashed border-[#b11226]/30 rounded-xl bg-[#0f0f1a]/60 p-6 flex flex-col items-center text-center gap-4"
                 >
-                  <div className="w-full flex flex-col items-center gap-4">
-                    <div className="w-full aspect-[2/3] rounded-lg border border-[#b11226]/30 overflow-hidden bg-[#0f0f1a]/50 flex items-center justify-center">
-                      {flyerPreview ? (
-                        <img
-                          src={flyerPreview}
-                          alt="Flyer preview"
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <div className="text-gray-400 flex flex-col items-center gap-3">
-                          <div className="h-20 w-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
-                            <ImageIcon className="text-[#b11226]" size={36} />
-                          </div>
-                          <p className="text-white font-semibold">Drag & Drop Flyer</p>
-                          <p className="text-sm text-gray-500">Image files only. Or click to browse.</p>
+                  <FlyerFrame
+                    src={flyerPreview || undefined}
+                    alt="Flyer preview"
+                    size="lg"
+                    placeholder={
+                      <div className="text-gray-400 flex flex-col items-center gap-3">
+                        <div className="h-20 w-20 rounded-full bg-white/5 border border-white/10 flex items-center justify-center">
+                          <ImageIcon className="text-[#b11226]" size={36} />
                         </div>
-                      )}
-                    </div>
-                    <label className="mt-2 inline-flex items-center gap-2 px-4 py-2 bg-[#b11226] hover:bg-[#d31a33] text-white rounded-lg cursor-pointer transition">
-                      <Upload size={16} />
-                      {isUploadingFlyer ? "Uploading..." : "Upload Flyer"}
-                      <input
-                        type="file"
-                        accept="image/*"
-                        className="hidden"
-                        onChange={(e) => handleFileInput(e.target.files)}
-                        disabled={isUploadingFlyer}
-                      />
-                    </label>
-                  </div>
+                        <p className="text-white font-semibold">Drag & Drop Flyer</p>
+                        <p className="text-sm text-gray-500">Image files only. Or click to browse.</p>
+                      </div>
+                    }
+                  />
+                  <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#b11226] hover:bg-[#d31a33] text-white rounded-lg cursor-pointer transition">
+                    <Upload size={16} />
+                    {isUploadingFlyer ? "Uploading..." : "Upload Flyer"}
+                    <input
+                      type="file"
+                      accept="image/*"
+                      className="hidden"
+                      onChange={(e) => handleFileInput(e.target.files)}
+                      disabled={isUploadingFlyer}
+                    />
+                  </label>
                 </div>
 
                 <div className="space-y-6">
@@ -505,18 +576,62 @@ export default function CreateEvent() {
                       </div>
                     </div>
 
-                    <div>
-                      <label className="block text-sm font-medium text-gray-300 mb-2">
-                        Venue Address
-                      </label>
-                      <textarea
-                        value={venueAddress}
-                        onChange={(e) => setVenueAddress(e.target.value)}
-                        rows={3}
-                        required
-                        className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                        placeholder="Street, City, Country"
-                      />
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Street Address
+                        </label>
+                        <input
+                          type="text"
+                          value={venueAddress}
+                          onChange={(e) => setVenueAddress(e.target.value)}
+                          required
+                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                          placeholder="123 Main St"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Zip Code
+                        </label>
+                        <input
+                          type="text"
+                          value={venueZipCode}
+                          onChange={(e) => setVenueZipCode(e.target.value)}
+                          required
+                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                          placeholder="90210"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          State / Province
+                        </label>
+                        <input
+                          type="text"
+                          value={venueState}
+                          onChange={(e) => setVenueState(e.target.value)}
+                          required
+                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                          placeholder="California"
+                        />
+                      </div>
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          Country
+                        </label>
+                        <input
+                          type="text"
+                          value={venueCountry}
+                          onChange={(e) => setVenueCountry(e.target.value)}
+                          required
+                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                          placeholder="United States"
+                        />
+                      </div>
                     </div>
                   </section>
 
@@ -647,4 +762,11 @@ function computeEndTime(start: string, lengthHours: number): string {
   const endH = date.getHours().toString().padStart(2, "0");
   const endM = date.getMinutes().toString().padStart(2, "0");
   return `${endH}:${endM}`;
+}
+
+function toTimeInput(time?: string | null): string {
+  if (!time) return "";
+  const [hh, mm] = time.split(":");
+  if (!hh || !mm) return time;
+  return `${hh.padStart(2, "0")}:${mm.padStart(2, "0")}`;
 }

@@ -32,6 +32,68 @@ class EventService {
     return response.json();
   }
 
+  async update(id: string, payload: CreateEventInput): Promise<Event> {
+    const response = await fetch(buildApiUrl(`/events/${id}`), {
+      method: "PUT",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify(payload),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || "Failed to update event");
+    }
+
+    return response.json();
+  }
+
+  async listMine(): Promise<Event[]> {
+    const response = await fetch(buildApiUrl("/events/mine"), {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error("Failed to load your events");
+    }
+
+    return response.json();
+  }
+
+  async get(id: string): Promise<Event> {
+    const response = await fetch(buildApiUrl(`/events/${id}`), {
+      method: "GET",
+      credentials: "include",
+    });
+
+    if (!response.ok) {
+      throw new Error("Event not found");
+    }
+
+    return response.json();
+  }
+
+  async toggleLive(id: string, isLive: boolean): Promise<Event> {
+    const response = await fetch(buildApiUrl(`/events/${id}/live`), {
+      method: "PATCH",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ isLive }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || "Failed to update live status");
+    }
+
+    return response.json();
+  }
+
   async uploadFlyer(file: File): Promise<string> {
     // Step 1: Get presigned URL from backend
     const formData = new FormData();
