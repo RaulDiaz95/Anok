@@ -23,16 +23,22 @@ public class S3Service {
     private final String bucketName;
     private final String keyPrefix;
     private final Duration presignDuration;
+    private final String cloudFrontDomain;
+    private final boolean cloudFrontEnabled;
 
     public S3Service(
             @Value("${aws.s3.bucket}") String bucketName,
             @Value("${aws.s3.region}") String region,
             @Value("${aws.s3.prefix}") String keyPrefix,
-            @Value("${aws.s3.presign-expiration-minutes}") long presignExpirationMinutes
+            @Value("${aws.s3.presign-expiration-minutes}") long presignExpirationMinutes,
+            @Value("${aws.cloudfront.domain:}") String cloudFrontDomain,
+            @Value("${aws.cloudfront.enabled:false}") boolean cloudFrontEnabled
     ) {
         this.bucketName = bucketName;
         this.keyPrefix = keyPrefix;
         this.presignDuration = Duration.ofMinutes(presignExpirationMinutes);
+        this.cloudFrontDomain = cloudFrontDomain;
+        this.cloudFrontEnabled = cloudFrontEnabled;
         this.s3Presigner = S3Presigner.builder()
                 .region(Region.of(region))
                 .build();
@@ -80,6 +86,12 @@ public class S3Service {
         }
 
         try {
+            // Use CloudFront URL if enabled
+            if (cloudFrontEnabled && cloudFrontDomain != null && !cloudFrontDomain.isBlank()) {
+                return "https://" + cloudFrontDomain + "/" + key;
+            }
+
+            // Fallback to presigned S3 URL
             PresignedGetObjectRequest presigned = s3Presigner.presignGetObject(
                     GetObjectPresignRequest.builder()
                             .signatureDuration(presignDuration)

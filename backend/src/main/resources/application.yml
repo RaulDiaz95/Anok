@@ -60,6 +60,9 @@ aws:
     region: ${AWS_REGION:us-east-2}
     prefix: ${S3_PREFIX:uploads/}
     presign-expiration-minutes: ${S3_PRESIGN_EXP_MINUTES:15}
+  cloudfront:
+    domain: ${CLOUDFRONT_DOMAIN:}
+    enabled: ${CLOUDFRONT_ENABLED:false}
 
 # OpenAPI/Swagger Documentation
 springdoc:
