@@ -5,10 +5,12 @@ import com.anok.model.User;
 import com.anok.repository.RoleRepository;
 import com.anok.repository.UserRepository;
 import org.springframework.boot.CommandLineRunner;
+import org.springframework.core.annotation.Order;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
+@Order(1) // Run first to ensure ROLE_SUPERUSER exists
 public class AdminSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
