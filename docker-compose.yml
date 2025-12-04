@@ -51,7 +51,11 @@ services:
       # AWS Configuration (uses SSO locally, env vars in production)
       AWS_PROFILE: ${AWS_PROFILE:-default}
       S3_BUCKET: ${S3_BUCKET:-}
-      AWS_REGION: ${AWS_REGION:-}
+      AWS_REGION: ${AWS_REGION:-us-east-2}
+      S3_PREFIX: ${S3_PREFIX:-uploads/}
+      S3_PRESIGN_EXP_MINUTES: ${S3_PRESIGN_EXP_MINUTES:-15}
+      CLOUDFRONT_DOMAIN: ${CLOUDFRONT_DOMAIN:-}
+      CLOUDFRONT_ENABLED: ${CLOUDFRONT_ENABLED:-false}
     ports:
       - "${BACKEND_PORT:-8080}:8080"
     networks:
