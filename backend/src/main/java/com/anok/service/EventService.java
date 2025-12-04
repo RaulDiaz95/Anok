@@ -6,10 +6,12 @@ import com.anok.exception.ResourceNotFoundException;
 import com.anok.model.Event;
 import com.anok.model.EventGenre;
 import com.anok.model.EventPerformer;
+import com.anok.model.EventStatus;
 import com.anok.model.User;
 import com.anok.repository.EventRepository;
 import com.anok.repository.UserRepository;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.LocalTime;
@@ -32,22 +34,29 @@ public class EventService {
         this.s3Service = s3Service;
     }
 
+    @Transactional
     public EventResponse createEvent(EventRequest request, String ownerEmail) {
         User owner = userRepository.findByEmailNormalized(ownerEmail.toLowerCase())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         Event event = new Event();
         event.setOwner(owner);
-        applyEventRequest(event, request);
+        applyEventRequest(event, request, true);
+        event.setStatus(EventStatus.PENDING_REVIEW);
+        event.setLive(false);
 
         Event saved = eventRepository.save(event);
         return toResponse(saved);
     }
 
+    @Transactional
     public EventResponse updateEvent(UUID eventId, EventRequest request, String ownerEmail) {
         Event event = eventRepository.findByIdAndOwner_EmailNormalized(eventId, ownerEmail.toLowerCase())
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found or not owned by user"));
-        applyEventRequest(event, request);
+        // Any edit triggers re-review
+        applyEventRequest(event, request, false);
+        event.setStatus(EventStatus.PENDING_REVIEW);
+        event.setLive(false);
         Event saved = eventRepository.save(event);
         return toResponse(saved);
     }
@@ -60,10 +69,17 @@ public class EventService {
                 .collect(Collectors.toList());
     }
 
+    @Transactional
     public EventResponse updateLiveStatus(UUID eventId, Boolean isLive, String ownerEmail) {
         Event event = eventRepository.findByIdAndOwner_EmailNormalized(eventId, ownerEmail.toLowerCase())
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found or not owned by user"));
+        if (event.getStatus() != EventStatus.APPROVED && event.getStatus() != EventStatus.LIVE) {
+            throw new IllegalStateException("Event must be approved before toggling live state");
+        }
         event.setLive(Boolean.TRUE.equals(isLive));
+        if (Boolean.TRUE.equals(isLive)) {
+            event.setStatus(EventStatus.LIVE);
+        }
         Event saved = eventRepository.save(event);
         return toResponse(saved);
     }
@@ -82,7 +98,34 @@ public class EventService {
         return toResponse(event);
     }
 
-    private void applyEventRequest(Event event, EventRequest request) {
+    public List<EventResponse> findByStatus(EventStatus status) {
+        return eventRepository.findAllByStatusOrderByCreatedAtAsc(status)
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public EventResponse approve(UUID id) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        event.setStatus(EventStatus.APPROVED);
+        event.setLive(true);
+        Event saved = eventRepository.save(event);
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public EventResponse reject(UUID id) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        event.setStatus(EventStatus.REJECTED);
+        event.setLive(false);
+        Event saved = eventRepository.save(event);
+        return toResponse(saved);
+    }
+
+    private void applyEventRequest(Event event, EventRequest request, boolean isCreate) {
         LocalTime computedEndTime = request.getEndTime();
         if (computedEndTime == null && request.getStartTime() != null && request.getEventLengthHours() != null) {
             computedEndTime = request.getStartTime().plusHours(request.getEventLengthHours());
@@ -98,7 +141,12 @@ public class EventService {
         event.setEventDateTime(request.getEventDate().atTime(request.getStartTime()));
         String flyer = request.getFlyerUrl();
         event.setFlyerUrl(flyer == null ? "" : flyer.trim());
-        event.setLive(request.getLive());
+        if (isCreate) {
+            event.setLive(false);
+            event.setStatus(EventStatus.PENDING_REVIEW);
+        } else {
+            event.setLive(Boolean.TRUE.equals(request.getLive()));
+        }
         event.setVenueName(request.getVenueName().trim());
         event.setVenueAddress(request.getVenueAddress().trim());
         event.setVenueZipCode(request.getVenueZipCode().trim());
@@ -136,6 +184,7 @@ public class EventService {
         response.setAllAges(event.getAllAges());
         response.setAlcohol(event.getAlcohol());
         response.setAgeRestriction(event.getAgeRestriction());
+        response.setStatus(event.getStatus());
         if (event.getGenres() != null) {
             List<String> genreLabels = event.getGenres().stream()
                     .sorted(Comparator.comparing(EventGenre::getOrderIndex))

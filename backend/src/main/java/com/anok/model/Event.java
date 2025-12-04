@@ -42,6 +42,10 @@ public class Event {
     @Column(name = "is_live", nullable = false)
     private Boolean isLive = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 32)
+    private EventStatus status = EventStatus.PENDING_REVIEW;
+
     @Column(name = "start_time", nullable = false)
     private LocalTime startTime = LocalTime.MIDNIGHT;
 
@@ -168,6 +172,14 @@ public class Event {
 
     public void setLive(Boolean live) {
         isLive = live;
+    }
+
+    public EventStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(EventStatus status) {
+        this.status = status;
     }
 
     public LocalTime getStartTime() {

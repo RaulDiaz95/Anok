@@ -66,8 +66,8 @@ public class SecurityConfig {
                         .requestMatchers(HttpMethod.GET, "/events/**").permitAll()
                         .requestMatchers(HttpMethod.GET, "/uploads/**").permitAll()
 
-                        // Admin-only endpoints (future use)
-                        .requestMatchers("/admin/**").hasRole("ADMIN")
+                        // Admin-only endpoints (superuser)
+                        .requestMatchers("/admin/**").hasRole("SUPERUSER")
 
                         // Support endpoints (future use)
                         .requestMatchers("/support/**").hasAnyRole("SUPPORT", "ADMIN")
