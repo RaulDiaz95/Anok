@@ -84,11 +84,11 @@ services:
       - key: S3_PREFIX
         value: uploads/
       - key: S3_PRESIGN_EXP_MINUTES
-        value: 15
+        value: 5
       - key: CLOUDFRONT_DOMAIN
         sync: false
       - key: CLOUDFRONT_ENABLED
-        value: false
+        value: true
 
   # Dev Frontend
   - type: web
@@ -173,11 +173,11 @@ services:
       - key: S3_PREFIX
         value: uploads/
       - key: S3_PRESIGN_EXP_MINUTES
-        value: 15
+        value: 5
       - key: CLOUDFRONT_DOMAIN
         sync: false
       - key: CLOUDFRONT_ENABLED
-        value: false
+        value: true
 
   # Main Frontend
   - type: web
