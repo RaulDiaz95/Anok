@@ -9,6 +9,7 @@ import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
 import java.util.UUID;
+import com.anok.model.EventStatus;
 
 @Repository
 public interface EventRepository extends JpaRepository<Event, UUID> {
@@ -30,4 +31,7 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
 
     @EntityGraph(attributePaths = {"owner", "genres", "performers"})
     Optional<Event> findByIdAndOwner_EmailNormalized(UUID id, String ownerEmailNormalized);
+
+    @EntityGraph(attributePaths = {"owner", "genres", "performers"})
+    List<Event> findAllByStatusOrderByCreatedAtAsc(EventStatus status);
 }

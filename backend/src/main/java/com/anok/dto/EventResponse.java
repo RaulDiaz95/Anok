@@ -8,6 +8,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import com.anok.model.EventStatus;
 
 public class EventResponse {
 
@@ -31,6 +32,7 @@ public class EventResponse {
     private String ageRestriction;
     private Boolean allAges;
     private Boolean alcohol;
+    private EventStatus status;
     private List<String> genres = new ArrayList<>();
     private List<PerformerResponse> performers = new ArrayList<>();
     private UUID ownerId;
@@ -186,6 +188,14 @@ public class EventResponse {
 
     public void setAlcohol(Boolean alcohol) {
         this.alcohol = alcohol;
+    }
+
+    public EventStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(EventStatus status) {
+        this.status = status;
     }
 
     public List<String> getGenres() {

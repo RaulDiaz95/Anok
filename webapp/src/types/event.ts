@@ -1,3 +1,5 @@
+export type EventStatus = "DRAFT" | "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "LIVE";
+
 export interface Performer {
   id?: string;
   performerName: string;
@@ -20,8 +22,9 @@ export interface Event {
   startTime: string;
   eventLengthHours: number;
   endTime?: string | null;
-  eventDateTime: string;        // ⬅️ FALTABA
+  eventDateTime: string;
   isLive: boolean;
+  status?: EventStatus;
   about: string;
   title: string;
   venueName: string;
@@ -35,8 +38,8 @@ export interface Event {
   alcohol: boolean;
   genres?: string[] | null;
   performers: Performer[];
-  ownerId?: string | null;      // ⬅️ FALTABA
-  ownerName?: string | null;    // ⬅️ FALTABA
+  ownerId?: string | null;
+  ownerName?: string | null;
 }
 
 export interface CreateEventInput {
@@ -46,6 +49,7 @@ export interface CreateEventInput {
   eventLengthHours: number;
   endTime?: string | null;
   isLive: boolean;
+  status?: EventStatus;
   about: string;
   title: string;
   venueName: string;

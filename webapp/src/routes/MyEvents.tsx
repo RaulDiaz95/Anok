@@ -78,6 +78,8 @@ export default function MyEvents() {
   };
 
   const hasEvents = useMemo(() => events.length > 0, [events]);
+  const canToggle = (event: Event) =>
+    event.status === "APPROVED" || event.status === "LIVE" || event.isLive;
 
   if (isLoading || !isAuthenticated) {
     return (
@@ -146,6 +148,7 @@ export default function MyEvents() {
                   <tr>
                     <th className="px-4 py-3 text-left">Title</th>
                     <th className="px-4 py-3 text-left">Date</th>
+                    <th className="px-4 py-3 text-left">Status</th>
                     <th className="px-4 py-3 text-left">Live</th>
                     <th className="px-4 py-3 text-left">Capacity</th>
                     <th className="px-4 py-3 text-left">Location</th>
@@ -159,11 +162,14 @@ export default function MyEvents() {
                         {event.title}
                       </td>
                       <td className="px-4 py-3 text-gray-300">{formatDate(event)}</td>
+                      <td className="px-4 py-3 text-gray-300 capitalize">
+                        {event.status?.toLowerCase().replace("_", " ") || "pending_review"}
+                      </td>
                       <td className="px-4 py-3">
                         <button
                           onClick={() => handleToggleLive(event)}
                           className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#b11226]/30 bg-[#b11226]/10 hover:bg-[#b11226]/20 transition"
-                          disabled={togglingId === event.id}
+                          disabled={togglingId === event.id || !canToggle(event)}
                         >
                           {togglingId === event.id ? (
                             <Loader2 className="animate-spin" size={16} />
@@ -173,7 +179,7 @@ export default function MyEvents() {
                             <ToggleLeft size={18} className="text-gray-300" />
                           )}
                           <span className="text-sm text-white">
-                            {event.isLive ? "Live" : "Offline"}
+                            {event.isLive ? "Live" : canToggle(event) ? "Offline" : "Locked"}
                           </span>
                         </button>
                       </td>

@@ -7,6 +7,8 @@ import CreateEvent from "./CreateEvent";
 import Events from "./Events";
 import MyEvents from "./MyEvents";
 import ScrollToTop from "../components/ScrollToTop";
+import AdminReviewEvents from "./AdminReviewEvents";
+import AdminReviewEventDetail from "./AdminReviewEventDetail";
 
 export default function AppRoutes() {
   return (
@@ -21,6 +23,8 @@ export default function AppRoutes() {
         <Route path="/events/:id/edit" element={<CreateEvent />} />
         <Route path="/events/mine" element={<MyEvents />} />
         <Route path="/events" element={<Events />} />
+        <Route path="/admin/review-events" element={<AdminReviewEvents />} />
+        <Route path="/admin/review-events/:eventId" element={<AdminReviewEventDetail />} />
       </Routes>
     </BrowserRouter>
   );

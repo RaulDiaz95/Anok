@@ -30,7 +30,7 @@ export default function CreateEvent() {
   const [endTimeEdited, setEndTimeEdited] = useState(false);
   const [flyerPreview, setFlyerPreview] = useState("");
   const [flyerUrl, setFlyerUrl] = useState("");
-  const [isLive, setIsLive] = useState(true);
+  const [isLive, setIsLive] = useState(false);
   const [venueName, setVenueName] = useState("");
   const [venueAddress, setVenueAddress] = useState("");
   const [venueZipCode, setVenueZipCode] = useState("");
@@ -237,16 +237,16 @@ export default function CreateEvent() {
         throw new Error("Add at least one performer with a name.");
       }
 
-      const payload = {
-        title: title.trim(),
-        flyerUrl,
-        eventDate,
-        startTime,
-        eventLengthHours: Number(eventLengthHours),
-        endTime: endTime || null,
-        isLive,
-        venueName: venueName.trim(),
-        venueAddress: venueAddress.trim(),
+        const payload = {
+          title: title.trim(),
+          flyerUrl,
+          eventDate,
+          startTime,
+          eventLengthHours: Number(eventLengthHours),
+          endTime: endTime || null,
+          isLive: false,
+          venueName: venueName.trim(),
+          venueAddress: venueAddress.trim(),
         venueZipCode: venueZipCode.trim(),
         venueState: venueState.trim(),
         venueCountry: venueCountry.trim(),

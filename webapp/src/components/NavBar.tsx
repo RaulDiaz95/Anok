@@ -32,8 +32,16 @@ export default function Navbar() {
     navigate("/");
   };
 
+  const isSuper = user?.roles?.includes("ROLE_SUPERUSER");
+
   const handleMyEvents = () => {
     navigate("/events/mine");
+    setProfileOpen(false);
+    setMenuOpen(false);
+  };
+
+  const handleAdmin = () => {
+    navigate("/admin/review-events");
     setProfileOpen(false);
     setMenuOpen(false);
   };
@@ -130,6 +138,15 @@ export default function Navbar() {
                     <User size={16} />
                     <span>My Events</span>
                   </button>
+                  {isSuper && (
+                    <button
+                      onClick={handleAdmin}
+                      className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-[#b11226]/10 transition-colors text-white border-b border-[#b11226]/20"
+                    >
+                      <User size={16} />
+                      <span>Admin Review</span>
+                    </button>
+                  )}
                   <button
                     onClick={handleLogout}
                     className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-[#b11226]/10 transition-colors text-white"
@@ -212,6 +229,16 @@ export default function Navbar() {
                     My Events
                   </button>
                 </li>
+                {isSuper && (
+                  <li className="w-full px-6">
+                    <button
+                      onClick={handleAdmin}
+                      className="w-full px-4 py-2 border border-[#b11226]/40 rounded-lg text-white hover:bg-[#b11226]/10 transition"
+                    >
+                      Admin Review
+                    </button>
+                  </li>
+                )}
                 <li>
                   <button
                     onClick={() => {
