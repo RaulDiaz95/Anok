@@ -146,6 +146,7 @@ export default function MyEvents() {
               <table className="min-w-full text-sm">
                 <thead className="bg-white/5 text-gray-300 uppercase text-xs tracking-wide">
                   <tr>
+                    <th className="px-4 py-3 text-left">Flyer</th>
                     <th className="px-4 py-3 text-left">Title</th>
                     <th className="px-4 py-3 text-left">Date</th>
                     <th className="px-4 py-3 text-left">Status</th>
@@ -158,6 +159,21 @@ export default function MyEvents() {
                 <tbody className="divide-y divide-[#b11226]/10">
                   {events.map((event) => (
                     <tr key={event.id} className="hover:bg-white/5">
+                      <td className="px-4 py-3">
+                        {event.flyerUrl ? (
+                          <div className="w-16 h-20 md:w-20 md:h-24 rounded-lg overflow-hidden border border-white/10 bg-white/5">
+                            <img
+                              src={event.flyerUrl}
+                              alt={`${event.title} flyer`}
+                              className="w-full h-full object-cover"
+                            />
+                          </div>
+                        ) : (
+                          <div className="w-16 h-20 md:w-20 md:h-24 rounded-lg border border-dashed border-white/15 bg-white/5 text-[10px] text-gray-400 flex items-center justify-center text-center px-1">
+                            No flyer
+                          </div>
+                        )}
+                      </td>
                       <td className="px-4 py-3 font-semibold text-white">
                         {event.title}
                       </td>
