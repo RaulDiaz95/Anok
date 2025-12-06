@@ -16,6 +16,24 @@ import Navbar from "../components/NavBar";
 import { PerformerInput } from "../types/event";
 import { FlyerFrame } from "../components/FlyerFrame";
 
+const GENRE_OPTIONS = [
+  "Rock",
+  "Pop",
+  "Hip-Hop/Rap",
+  "Classical",
+  "Jazz",
+  "Electronic",
+  "Country",
+  "Blues",
+  "Reggae",
+  "Folk",
+  "R&B/Soul",
+  "Gospel",
+  "Funk",
+  "World Music",
+  "Opera",
+];
+
 export default function CreateEvent() {
   const navigate = useNavigate();
   const { id: eventId } = useParams<{ id: string }>();
@@ -525,13 +543,20 @@ export default function CreateEvent() {
                             />
                           </div>
                           <div className="grid md:grid-cols-2 gap-3">
-                            <input
-                              type="text"
+                            <select
                               value={performer.genre1 || ""}
                               onChange={(e) => updatePerformer(index, "genre1", e.target.value)}
-                              placeholder="Genre 1"
-                              className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                            />
+                              className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                            >
+                              <option value="" className="bg-[#0f0f1a] text-gray-400">
+                                Select genre
+                              </option>
+                              {GENRE_OPTIONS.map((option) => (
+                                <option key={option} value={option} className="bg-[#0f0f1a] text-white">
+                                  {option}
+                                </option>
+                              ))}
+                            </select>
                             <input
                               type="text"
                               value={performer.genre2 || ""}
