@@ -59,7 +59,7 @@ export default function CreateEvent() {
   const [allAges, setAllAges] = useState(true);
   const [alcohol, setAlcohol] = useState(false);
   const [performers, setPerformers] = useState<PerformerInput[]>([
-    { performerName: "", genre1: "", genre2: "", performerLink: "" },
+    { performerName: "", genre1: "", genre2: "", genre3: "", performerLink: "" },
   ]);
   const [genreInput, setGenreInput] = useState("");
   const [genres, setGenres] = useState<string[]>([]);
@@ -108,9 +108,10 @@ export default function CreateEvent() {
                 performerName: p.performerName || "",
                 genre1: p.genre1 || "",
                 genre2: p.genre2 || "",
+                genre3: p.genre3 || "",
                 performerLink: p.performerLink || "",
               }))
-            : [{ performerName: "", genre1: "", genre2: "", performerLink: "" }]
+            : [{ performerName: "", genre1: "", genre2: "", genre3: "", performerLink: "" }]
         );
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load event");
@@ -193,7 +194,7 @@ export default function CreateEvent() {
   const addPerformer = () => {
     setPerformers([
       ...performers,
-      { performerName: "", genre1: "", genre2: "", performerLink: "" },
+      { performerName: "", genre1: "", genre2: "", genre3: "", performerLink: "" },
     ]);
   };
 
@@ -248,6 +249,7 @@ export default function CreateEvent() {
           performerName: p.performerName.trim(),
           genre1: p.genre1?.trim() || "",
           genre2: p.genre2?.trim() || "",
+          genre3: p.genre3?.trim() || "",
           performerLink: p.performerLink?.trim() || "",
         }));
 
@@ -531,7 +533,7 @@ export default function CreateEvent() {
                                 updatePerformer(index, "performerName", e.target.value)
                               }
                               placeholder="Performer name"
-                              className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                              className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition md:col-span-2"
                               required={index === 0}
                             />
                             <input
@@ -539,14 +541,14 @@ export default function CreateEvent() {
                               value={performer.performerLink || ""}
                               onChange={(e) => updatePerformer(index, "performerLink", e.target.value)}
                               placeholder="Performer link"
-                              className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                              className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition md:col-span-2"
                             />
                           </div>
                           <div className="grid md:grid-cols-2 gap-3">
                             <select
                               value={performer.genre1 || ""}
                               onChange={(e) => updatePerformer(index, "genre1", e.target.value)}
-                              className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                              className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition md:col-span-2"
                             >
                               <option value="" className="bg-[#0f0f1a] text-gray-400">
                                 Select genre
@@ -562,7 +564,14 @@ export default function CreateEvent() {
                               value={performer.genre2 || ""}
                               onChange={(e) => updatePerformer(index, "genre2", e.target.value)}
                               placeholder="Genre 2"
-                              className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                              className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition md:col-span-2"
+                            />
+                            <input
+                              type="text"
+                              value={performer.genre3 || ""}
+                              onChange={(e) => updatePerformer(index, "genre3", e.target.value)}
+                              placeholder="Genre 3"
+                              className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition md:col-span-2"
                             />
                           </div>
                         </div>

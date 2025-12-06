@@ -82,9 +82,9 @@ public class SampleEventSeeder implements CommandLineRunner {
         addGenre(event, "Indie", 2);
 
         // Add performers
-        addPerformer(event, "The Electric Waves", "Electronic", "Dance", "https://example.com/electricwaves");
-        addPerformer(event, "Indie Soul Collective", "Indie", "Soul", "https://example.com/indiesoul");
-        addPerformer(event, "Rock Revolution", "Rock", "Alternative", "https://example.com/rockrevolution");
+        addPerformer(event, "The Electric Waves", "Electronic", "Dance", null, "https://example.com/electricwaves");
+        addPerformer(event, "Indie Soul Collective", "Indie", "Soul", null, "https://example.com/indiesoul");
+        addPerformer(event, "Rock Revolution", "Rock", "Alternative", null, "https://example.com/rockrevolution");
 
         eventRepository.save(event);
     }
@@ -125,9 +125,9 @@ public class SampleEventSeeder implements CommandLineRunner {
         addGenre(event, "Blues", 2);
 
         // Add performers
-        addPerformer(event, "The Jazz Quartet", "Jazz", "Bebop", "https://example.com/jazzquartet");
-        addPerformer(event, "Sarah Blue", "Soul", "Jazz", "https://example.com/sarahblue");
-        addPerformer(event, "The Blue Notes", "Blues", "Jazz", "https://example.com/bluenotes");
+        addPerformer(event, "The Jazz Quartet", "Jazz", "Bebop", null, "https://example.com/jazzquartet");
+        addPerformer(event, "Sarah Blue", "Soul", "Jazz", null, "https://example.com/sarahblue");
+        addPerformer(event, "The Blue Notes", "Blues", "Jazz", null, "https://example.com/bluenotes");
 
         eventRepository.save(event);
     }
@@ -140,12 +140,13 @@ public class SampleEventSeeder implements CommandLineRunner {
         event.getGenres().add(genre);
     }
 
-    private void addPerformer(Event event, String name, String genre1, String genre2, String link) {
+    private void addPerformer(Event event, String name, String genre1, String genre2, String genre3, String link) {
         EventPerformer performer = new EventPerformer();
         performer.setEvent(event);
         performer.setPerformerName(name);
         performer.setGenre1(genre1);
         performer.setGenre2(genre2);
+        performer.setGenre3(genre3);
         performer.setPerformerLink(link);
         event.getPerformers().add(performer);
     }

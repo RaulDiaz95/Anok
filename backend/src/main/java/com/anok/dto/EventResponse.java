@@ -235,6 +235,7 @@ public class EventResponse {
         private String performerName;
         private String genre1;
         private String genre2;
+        private String genre3;
         private String performerLink;
 
         public UUID getId() {
@@ -267,6 +268,14 @@ public class EventResponse {
 
         public void setGenre2(String genre2) {
             this.genre2 = genre2;
+        }
+
+        public String getGenre3() {
+            return genre3;
+        }
+
+        public void setGenre3(String genre3) {
+            this.genre3 = genre3;
         }
 
         public String getPerformerLink() {

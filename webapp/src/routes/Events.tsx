@@ -186,25 +186,39 @@ const formatDateTime = (event: Event) => {
                 </div>
 
                 {event.performers && event.performers.length > 0 && (
-                  <div className="text-sm text-gray-200 space-y-2">
+                  <div className="text-sm text-gray-200 space-y-3">
                     <p className="font-semibold text-white">Performers</p>
-                    <div className="space-y-1">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
                       {event.performers.map((perf) => (
-                        <div key={perf.id || perf.performerName} className="border border-[#b11226]/20 rounded-lg px-3 py-2 bg-white/5">
-                          <p className="font-semibold text-white">{perf.performerName}</p>
-                          <p className="text-xs text-gray-400">
-                            {[perf.genre1, perf.genre2].filter(Boolean).join(", ")}
-                          </p>
-                          {perf.performerLink && (
-                            <a
-                              className="text-xs text-[#f7c0c7] underline hover:text-white"
-                              href={perf.performerLink}
-                              target="_blank"
-                              rel="noreferrer"
-                            >
-                              {perf.performerLink}
-                            </a>
-                          )}
+                        <div
+                          key={perf.id || perf.performerName}
+                          className="border border-[#b11226]/20 rounded-lg px-3 py-2 bg-white/5 shadow-inner"
+                        >
+                          <div className="flex items-start justify-between gap-2">
+                            <p className="font-semibold text-white leading-tight">{perf.performerName}</p>
+                            {perf.performerLink && (
+                              <a
+                                className="text-[11px] text-[#f7c0c7] underline hover:text-white"
+                                href={perf.performerLink}
+                                target="_blank"
+                                rel="noreferrer"
+                              >
+                                Link
+                              </a>
+                            )}
+                          </div>
+                          <div className="flex flex-wrap gap-1 mt-1">
+                            {[perf.genre1, perf.genre2, perf.genre3]
+                              .filter(Boolean)
+                              .map((g) => (
+                                <span
+                                  key={`${perf.performerName}-${g}`}
+                                  className="px-2 py-0.5 text-[11px] rounded-full bg-[#b11226]/15 border border-[#b11226]/30 text-gray-100"
+                                >
+                                  {g}
+                                </span>
+                              ))}
+                          </div>
                         </div>
                       ))}
                     </div>

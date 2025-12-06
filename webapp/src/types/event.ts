@@ -5,6 +5,7 @@ export interface Performer {
   performerName: string;
   genre1?: string | null;
   genre2?: string | null;
+  genre3?: string | null;
   performerLink?: string | null;
 }
 
@@ -12,6 +13,7 @@ export interface PerformerInput {
   performerName: string;
   genre1?: string;
   genre2?: string;
+  genre3?: string;
   performerLink?: string;
 }
 

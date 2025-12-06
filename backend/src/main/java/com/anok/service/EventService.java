@@ -200,6 +200,7 @@ public class EventService {
                         dto.setPerformerName(performer.getPerformerName());
                         dto.setGenre1(performer.getGenre1());
                         dto.setGenre2(performer.getGenre2());
+                        dto.setGenre3(performer.getGenre3());
                         dto.setPerformerLink(performer.getPerformerLink());
                         return dto;
                     })
@@ -256,6 +257,7 @@ public class EventService {
             performer.setPerformerName(performerName.trim());
             performer.setGenre1(trimToNull(performerRequest.getGenre1()));
             performer.setGenre2(trimToNull(performerRequest.getGenre2()));
+            performer.setGenre3(trimToNull(performerRequest.getGenre3()));
             performer.setPerformerLink(trimToNull(performerRequest.getPerformerLink()));
             eventPerformers.add(performer);
         }

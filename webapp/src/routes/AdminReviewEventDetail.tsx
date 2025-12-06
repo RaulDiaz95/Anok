@@ -68,7 +68,7 @@ export default function AdminReviewEventDetail() {
               <div className="space-y-2">
                 <h1 className="text-2xl font-bold">{event.title}</h1>
                 <p className="text-gray-300">
-                  {event.eventDate} {event.startTime && `· ${event.startTime}`}
+                  {event.eventDate} {event.startTime && `at ${event.startTime}`}
                 </p>
                 <p className="text-gray-300">{event.venueName}</p>
                 <p className="text-gray-400">{event.venueAddress}</p>
@@ -83,13 +83,39 @@ export default function AdminReviewEventDetail() {
                     </span>
                   ))}
                 </div>
-                <div className="text-sm text-gray-200 space-y-1">
-                  <p>Performers:</p>
-                  {event.performers?.map((p) => (
-                    <p key={p.performerName} className="text-gray-300">
-                      • {p.performerName}
-                    </p>
-                  ))}
+                <div className="text-sm text-gray-200 space-y-2">
+                  <p className="font-semibold">Performers</p>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                    {event.performers?.map((p) => (
+                      <div key={p.performerName} className="bg-white/5 border border-white/10 rounded-lg px-3 py-2 shadow-inner">
+                        <div className="flex items-start justify-between gap-2">
+                          <span className="text-white font-semibold leading-tight">{p.performerName}</span>
+                          {p.performerLink && (
+                            <a
+                              href={p.performerLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] text-[#f7c0c7] underline hover:text-white"
+                            >
+                              Link
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1 mt-1">
+                          {[p.genre1, p.genre2, p.genre3]
+                            .filter(Boolean)
+                            .map((g) => (
+                              <span
+                                key={`${p.performerName}-${g}`}
+                                className="px-2 py-0.5 text-[11px] rounded-full bg-[#b11226]/15 border border-[#b11226]/30 text-gray-100"
+                              >
+                                {g}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
                 </div>
                 <div className="flex gap-2 text-xs">
                   <span className="px-2 py-1 rounded bg-white/5 border border-white/10">

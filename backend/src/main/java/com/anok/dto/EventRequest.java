@@ -228,6 +228,9 @@ public class EventRequest {
         @Size(max = 100)
         private String genre2;
 
+        @Size(max = 100)
+        private String genre3;
+
         @Size(max = 1000)
         private String performerLink;
 
@@ -253,6 +256,14 @@ public class EventRequest {
 
         public void setGenre2(String genre2) {
             this.genre2 = genre2;
+        }
+
+        public String getGenre3() {
+            return genre3;
+        }
+
+        public void setGenre3(String genre3) {
+            this.genre3 = genre3;
         }
 
         public String getPerformerLink() {

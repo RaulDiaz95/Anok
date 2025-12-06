@@ -1,0 +1,2 @@
+ALTER TABLE event_performers
+    ADD COLUMN IF NOT EXISTS genre3 VARCHAR(100);
