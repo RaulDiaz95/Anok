@@ -1,60 +1,75 @@
-import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { Link } from "react-router-dom";
+import Navbar from "../components/NavBar";
+import { EventFlyerCard } from "../components/EventFlyerCard";
 import { eventService } from "../services/eventService";
 import { Event } from "../types/event";
-import { format, parseISO } from "date-fns";
-import Navbar from "../components/NavBar";
-import { Link } from "react-router-dom";
-import { CalendarDays, MapPin, Users } from "lucide-react";
-import { FlyerFrame } from "../components/FlyerFrame";
 
 export default function Events() {
   const [events, setEvents] = useState<Event[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const [page, setPage] = useState(0);
+  const [hasMore, setHasMore] = useState(true);
+  const [loading, setLoading] = useState(false);
+  const loaderRef = useRef<HTMLDivElement | null>(null);
+  const PAGE_SIZE = 20;
 
-  useEffect(() => {
-    const loadEvents = async () => {
-      setIsLoading(true);
+  const loadEvents = useCallback(
+    async (pageToLoad: number) => {
+      if (loading) return;
+      setLoading(true);
+      if (pageToLoad === 0) setIsLoading(true);
       setError("");
       try {
-        const data = await eventService.list();
-        setEvents(data.filter((evt) => evt.isLive));
+        const data = await eventService.list(pageToLoad, PAGE_SIZE);
+        const newEvents = data.filter((evt) => evt.isLive);
+        setEvents((prev) => (pageToLoad === 0 ? newEvents : [...prev, ...newEvents]));
+        if (newEvents.length < PAGE_SIZE) {
+          setHasMore(false);
+        } else {
+          setHasMore(true);
+        }
+        setPage(pageToLoad + 1);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load events");
+        setHasMore(false);
       } finally {
+        setLoading(false);
         setIsLoading(false);
       }
-    };
-    loadEvents();
-  }, []);
+    },
+    [loading, PAGE_SIZE]
+  );
 
-const formatDateTime = (event: Event) => {
-  const dt = event.eventDateTime || `${event.eventDate}T${event.startTime}`;
-  try {
-    return format(new Date(dt), "PPP • p");
-  } catch {
-    return "Date to be confirmed";
-  }
-};
-  const formatTimeOnly = (time?: string | null) => {
-    if (!time) return "—";
-    try {
-      return format(parseISO(`1970-01-01T${time}`), "p");
-    } catch {
-      return time;
-    }
-  };
+  useEffect(() => {
+    loadEvents(0);
+  }, [loadEvents]);
 
-  const buildAddress = (event: Event) => {
-    const parts = [
-      event.venueAddress,
-      event.venueState,
-      event.venueCountry,
-      event.venueZipCode,
-    ].filter((part) => part && part.trim() !== "");
-    return parts.join(", ") || "Address to be confirmed";
-  };
+  useEffect(() => {
+    const loader = loaderRef.current;
+    if (!loader || !hasMore) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const [entry] = entries;
+        if (entry.isIntersecting && !loading) {
+          loadEvents(page);
+        }
+      },
+      {
+        root: null,
+        rootMargin: "200px",
+        threshold: 0,
+      }
+    );
+
+    observer.observe(loader);
+    return () => observer.disconnect();
+  }, [hasMore, loadEvents, loading, page]);
+
+  const hasEvents = events.length > 0;
 
   return (
     <>
@@ -68,7 +83,7 @@ const formatDateTime = (event: Event) => {
                 animate={{ opacity: 1, y: 0 }}
                 className="text-4xl font-bold mb-3"
               >
-                Community & Official Submissions
+                Discover Live Events
               </motion.h1>
               <motion.p
                 initial={{ opacity: 0, y: 20 }}
@@ -76,9 +91,7 @@ const formatDateTime = (event: Event) => {
                 transition={{ delay: 0.1 }}
                 className="text-gray-400 max-w-2xl"
               >
-                Browse showcases sourced by the community plus official
-                organizers. Want to see your event here? Submit it—it only takes
-                a minute.
+                A visual gallery of what&apos;s happening. Hover to reveal the details, click to dive into the full lineup.
               </motion.p>
             </div>
             <Link
@@ -97,136 +110,34 @@ const formatDateTime = (event: Event) => {
             <div className="text-center text-red-400 mb-6">{error}</div>
           )}
 
-          {!isLoading && events.length === 0 && !error && (
+          {!isLoading && !hasEvents && !error && (
             <div className="text-center text-gray-400">
               No events yet. Be the first to register one!
             </div>
           )}
 
-          <div className="grid gap-6 md:grid-cols-2">
-            {events.map((event, index) => (
-              <motion.article
-                key={event.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="bg-gradient-to-br from-[#1a1a2e] via-[#171728] to-[#12121f] border border-[#b11226]/10 rounded-2xl p-6 flex flex-col gap-4 shadow-lg shadow-black/40"
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div>
-                    <h2 className="text-2xl font-semibold text-white mb-1">
-                      {event.title}
-                    </h2>
-                    <p className="text-sm text-gray-400 flex items-center gap-2">
-                      <CalendarDays size={16} className="text-[#b11226]" />
-                      {formatDateTime(event)}
-                    </p>
-                    <p className="text-xs text-gray-400">
-                      Duration: {event.eventLengthHours}h • Starts {formatTimeOnly(event.startTime)}{" "}
-                      {event.endTime ? `• Ends ${formatTimeOnly(event.endTime)}` : ""}
-                    </p>
-                  </div>
-                  <div className="flex gap-2">
-                    <span className="text-xs font-semibold uppercase tracking-wide bg-[#b11226]/20 text-[#f7c0c7] px-3 py-1 rounded-full">
-                      {event.isLive ? "Live" : "Offline"}
-                    </span>
-                    <span className="text-xs font-semibold uppercase tracking-wide bg-[#1f6f1f]/20 text-[#b6f0b6] px-3 py-1 rounded-full">
-                      {event.allAges ? "All Ages" : "18+"}
-                    </span>
-                  </div>
-                </div>
+          {hasEvents && (
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 md:gap-6">
+              {events.map((event, index) => (
+                <motion.div
+                  key={event.id}
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: index * 0.04 }}
+                >
+                  <EventFlyerCard event={event} />
+                </motion.div>
+              ))}
+            </div>
+          )}
 
-                {event.flyerUrl && event.flyerUrl.trim() !== "" && (
-                  <div className="w-full flex justify-center">
-                    <FlyerFrame
-                      src={event.flyerUrl}
-                      alt={`${event.title} flyer`}
-                      size="lg"
-                    />
-                  </div>
-                )}
+          {loading && hasMore && (
+            <div className="flex justify-center py-8">
+              <div className="h-10 w-10 rounded-full border-2 border-white/20 border-t-[#b11226] animate-spin" />
+            </div>
+          )}
 
-                {event.genres && event.genres.length > 0 && (
-                  <div className="flex flex-wrap gap-2 text-xs text-gray-200">
-                    {event.genres.map((genre) => (
-                      <span
-                        key={`${event.id}-${genre}`}
-                        className="px-3 py-1 font-semibold rounded-full border border-[#b11226]/30 text-gray-200 bg-[#b11226]/10"
-                      >
-                        {genre}
-                      </span>
-                    ))}
-                  </div>
-                )}
-
-                {event.about && (
-                  <p className="text-gray-300 text-sm">
-                    {event.about}
-                  </p>
-                )}
-
-                <div className="text-sm text-gray-300 space-y-1">
-                  <p className="font-medium text-white flex items-center gap-2">
-                    <MapPin size={16} className="text-[#b11226]" />
-                    {event.venueName}
-                  </p>
-                  <p className="text-gray-400 ml-6">{buildAddress(event)}</p>
-                </div>
-
-                <div className="flex flex-wrap gap-4 text-sm text-gray-400">
-                  <span className="flex items-center gap-2">
-                    <Users size={16} className="text-[#b11226]" />
-                    Capacity: {event.capacity}
-                  </span>
-                  {event.ownerName && (
-                    <span className="text-xs uppercase tracking-wide">
-                      Host: {event.ownerName}
-                    </span>
-                  )}
-                </div>
-
-                {event.performers && event.performers.length > 0 && (
-                  <div className="text-sm text-gray-200 space-y-3">
-                    <p className="font-semibold text-white">Performers</p>
-                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
-                      {event.performers.map((perf) => (
-                        <div
-                          key={perf.id || perf.performerName}
-                          className="border border-[#b11226]/20 rounded-lg px-3 py-2 bg-white/5 shadow-inner"
-                        >
-                          <div className="flex items-start justify-between gap-2">
-                            <p className="font-semibold text-white leading-tight">{perf.performerName}</p>
-                            {perf.performerLink && (
-                              <a
-                                className="text-[11px] text-[#f7c0c7] underline hover:text-white"
-                                href={perf.performerLink}
-                                target="_blank"
-                                rel="noreferrer"
-                              >
-                                Link
-                              </a>
-                            )}
-                          </div>
-                          <div className="flex flex-wrap gap-1 mt-1">
-                            {[perf.genre1, perf.genre2, perf.genre3]
-                              .filter(Boolean)
-                              .map((g) => (
-                                <span
-                                  key={`${perf.performerName}-${g}`}
-                                  className="px-2 py-0.5 text-[11px] rounded-full bg-[#b11226]/15 border border-[#b11226]/30 text-gray-100"
-                                >
-                                  {g}
-                                </span>
-                              ))}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                )}
-              </motion.article>
-            ))}
-          </div>
+          <div ref={loaderRef} className="h-4" />
         </div>
       </div>
     </>

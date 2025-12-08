@@ -1,216 +1,261 @@
-import { useParams, useNavigate } from "react-router-dom";
-import { motion, AnimatePresence } from "framer-motion";
-import { useEffect, useState } from "react";
+import { format, parseISO } from "date-fns";
+import { CalendarDays, Clock, MapPin, Users } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
+import { useNavigate, useParams } from "react-router-dom";
+import Navbar from "../components/NavBar";
+import { FlyerFrame } from "../components/FlyerFrame";
+import { eventService } from "../services/eventService";
+import { Event } from "../types/event";
 
-const events = [
-  {
-    id: 1,
-    title: "Imagine Dragons",
-    location: "New York, NY",
-    date: "Dec 10, 2025",
-    img: "https://images.unsplash.com/photo-1489515217757-5fd1be406fef?auto=format&fit=crop&w=1400&q=80",
-    description:
-      "Experience an electrifying night with Imagine Dragons — a fusion of rock, pop, and pure emotion.",
-    map: "https://www.google.com/maps?q=New+York,+NY&output=embed",
-  },
-  {
-    id: 2,
-    title: "Billie Eilish",
-    location: "Chicago, IL",
-    date: "Jan 15, 2026",
-    img: "https://images.unsplash.com/photo-1518972559570-7cc1309f3229?auto=format&fit=crop&w=1400&q=80",
-    description:
-      "Billie returns with her most intimate performance yet — dark pop, cinematic visuals, and raw energy.",
-    map: "https://www.google.com/maps?q=Chicago,+IL&output=embed",
-  },
-  {
-    id: 3,
-    title: "The Weeknd",
-    location: "Los Angeles, CA",
-    date: "Feb 22, 2026",
-    img: "https://images.unsplash.com/photo-1511379938547-c1f69419868d?auto=format&fit=crop&w=1400&q=80",
-    description:
-      "Dive into The Weeknd’s world of neon lights and hypnotic beats — a once-in-a-lifetime show.",
-    map: "https://www.google.com/maps?q=Los+Angeles,+CA&output=embed",
-  },
-  {
-    id: 4,
-    title: "Coldplay",
-    location: "London, UK",
-    date: "Mar 30, 2026",
-    img: "https://images.unsplash.com/photo-1470229722913-7c0e2dbbafd3?auto=format&fit=crop&w=1400&q=80",
-    description:
-      "A colorful celebration of sound and emotion — Coldplay’s most immersive world tour yet.",
-    map: "https://www.google.com/maps?q=London,+UK&output=embed",
-  },
-];
+const formatDate = (event?: Event | null) => {
+  if (!event) return "";
+  const dt = event.eventDateTime || `${event.eventDate}T${event.startTime}`;
+  try {
+    return format(new Date(dt), "PPP");
+  } catch {
+    try {
+      return format(parseISO(event.eventDate), "PPP");
+    } catch {
+      return "Date to be confirmed";
+    }
+  }
+};
+
+const formatTime = (time?: string | null) => {
+  if (!time) return "";
+  try {
+    return format(parseISO(`1970-01-01T${time}`), "p");
+  } catch {
+    return time;
+  }
+};
+
+const buildAddress = (event?: Event | null) =>
+  [
+    event?.venueAddress,
+    event?.venueState,
+    event?.venueCountry,
+    event?.venueZipCode,
+  ]
+    .filter((part) => part && part.trim() !== "")
+    .join(", ");
 
 export default function EventDetail() {
-  const { id } = useParams<{ id: string }>();
+  const { id, eventId } = useParams<{ id?: string; eventId?: string }>();
+  const resolvedId = eventId ?? id;
   const navigate = useNavigate();
-  const event = events.find((e) => e.id === parseInt(id || "0"));
-
-  const [gallery, setGallery] = useState<string[]>([]);
-  const [selectedImage, setSelectedImage] = useState<string | null>(null);
+  const [event, setEvent] = useState<Event | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!event) return;
-    // Usa imágenes de respaldo tipo Unsplash
-    setGallery([
-      "https://images.unsplash.com/photo-1507874457470-272b3c8d8ee2",
-      "https://images.unsplash.com/photo-1529626455594-4ff0802cfb7e",
-      "https://images.unsplash.com/photo-1511671782779-c97d3d27a1d4",
-      "https://images.unsplash.com/photo-1525186402429-b4ff38bedec6",
-    ]);
+    const load = async () => {
+      if (!resolvedId) {
+        setError("Event not found");
+        setLoading(false);
+        return;
+      }
+      setLoading(true);
+      setError("");
+      try {
+        const data = await eventService.get(resolvedId);
+        setEvent(data);
+      } catch (e) {
+        setError(e instanceof Error ? e.message : "Failed to load event");
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    load();
+  }, [resolvedId]);
+
+  const dateLabel = useMemo(() => formatDate(event), [event]);
+  const timeRange = useMemo(() => {
+    if (!event) return "";
+    const start = formatTime(event.startTime);
+    const end = formatTime(event.endTime);
+    if (start && end) return `${start} \u2013 ${end}`;
+    if (start) return start;
+    return "";
   }, [event]);
 
-  if (!event) {
+  const ageLabel = useMemo(() => {
+    if (!event) return "";
+    if (event.allAges) return "All Ages";
+    return event.ageRestriction || "18+";
+  }, [event]);
+
+  if (loading) {
     return (
-      <div className="flex flex-col justify-center items-center h-screen text-white bg-[#0f0f1a]">
-        <h1 className="text-3xl font-bold text-[#b11226] mb-4">Event not found</h1>
-        <button
-          onClick={() => navigate("/")}
-          className="text-[#b11226] underline hover:text-[#d31a33] transition-all"
-        >
-          ← Back to Events
-        </button>
-      </div>
+      <>
+        <Navbar />
+        <div className="min-h-screen flex items-center justify-center bg-[#0f0f1a] text-white">
+          Loading event...
+        </div>
+      </>
+    );
+  }
+
+  if (error || !event) {
+    return (
+      <>
+        <Navbar />
+        <div className="min-h-screen flex flex-col items-center justify-center bg-[#0f0f1a] text-white px-4">
+          <p className="text-2xl font-semibold mb-4">{error || "Event not found"}</p>
+          <button
+            onClick={() => navigate("/events")}
+            className="px-4 py-2 rounded-lg border border-white/20 text-white hover:bg-white/10 transition"
+          >
+            Go back to events
+          </button>
+        </div>
+      </>
     );
   }
 
   return (
-    <section className="min-h-screen text-white bg-[#0f0f1a] relative overflow-hidden py-16">
-      {/* Fondo cinematográfico */}
-      <motion.div
-        className="absolute inset-0 bg-cover bg-center blur-3xl opacity-30 scale-110"
-        style={{ backgroundImage: `url(${event.img})` }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ duration: 1.2 }}
-      ></motion.div>
-
-      <div className="relative z-10 max-w-6xl mx-auto px-6 md:px-12">
-        {/* Botón volver */}
-        <button
-          onClick={() => navigate("/")}
-          className="text-[#b11226] hover:text-[#d31a33] mb-8 font-semibold transition-all flex items-center gap-2"
-        >
-          ← Back to Events
-        </button>
-
-        {/* Contenido principal */}
-        <div className="flex flex-col lg:flex-row items-center gap-12 bg-black/30 backdrop-blur-lg rounded-2xl p-8 border border-[#b11226]/20 shadow-2xl">
-          {/* Imagen del evento */}
-          <motion.img
-            src={event.img}
-            alt={event.title}
-            className="w-full lg:w-[460px] h-[400px] object-cover rounded-xl border border-[#b11226]/30 shadow-lg"
-            initial={{ opacity: 0, x: -50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-          />
-
-          {/* Detalles */}
-          <motion.div
-            initial={{ opacity: 0, x: 50 }}
-            animate={{ opacity: 1, x: 0 }}
-            transition={{ duration: 0.8 }}
-            className="flex-1"
+    <>
+      <Navbar />
+      <div className="min-h-screen bg-gradient-to-b from-[#0f0f1a] via-[#12121c] to-black text-white pt-28 pb-16">
+        <div className="max-w-6xl mx-auto px-4 space-y-8">
+          <button
+            onClick={() => navigate(-1)}
+            className="text-sm text-gray-300 hover:text-white transition flex items-center gap-2"
           >
-            <h1 className="text-5xl font-extrabold text-[#b11226] mb-4 drop-shadow-[0_0_10px_rgba(177,18,38,0.6)]">
-              {event.title}
-            </h1>
+            <span className="text-lg">&#8592;</span> Back to Events
+          </button>
+
+          <div className="grid lg:grid-cols-[1.1fr_1.2fr] gap-8 bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl">
+            <div className="flex flex-col gap-4">
+              <FlyerFrame src={event.flyerUrl} alt={event.title} size="xl" className="w-full" />
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="px-3 py-1 rounded-full bg-[#b11226]/15 border border-[#b11226]/40 text-[#f7c0c7] font-semibold">
+                  {event.isLive ? "Live" : "Offline"}
+                </span>
+                <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-gray-100 font-semibold">
+                  {ageLabel}
+                </span>
+                <span className="px-3 py-1 rounded-full bg-white/10 border border-white/20 text-gray-100 font-semibold">
+                  Capacity: {event.capacity}
+                </span>
+              </div>
+            </div>
 
             <div className="space-y-4">
-              <div>
-                <h3 className="text-lg font-semibold text-[#b11226]">
-                  Date and Time
-                </h3>
-                <p className="text-gray-300">{event.date}</p>
+              <div className="space-y-2">
+                <p className="text-sm text-gray-400 uppercase tracking-wide">Event</p>
+                <h1 className="text-4xl font-bold">{event.title}</h1>
+                {event.ownerName && (
+                  <p className="text-gray-300 text-sm">Hosted by {event.ownerName}</p>
+                )}
               </div>
 
-              <div>
-                <h3 className="text-lg font-semibold text-[#b11226]">
-                  Location
-                </h3>
-                <p className="text-gray-300">{event.location}</p>
+              <div className="grid sm:grid-cols-2 gap-4">
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
+                  <div className="flex items-start gap-3">
+                    <CalendarDays className="text-[#b11226]" size={18} />
+                    <div>
+                      <p className="text-xs text-gray-400">Date</p>
+                      <p className="font-semibold text-white">{dateLabel}</p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Clock className="text-[#b11226]" size={18} />
+                    <div>
+                      <p className="text-xs text-gray-400">Time</p>
+                      <p className="font-semibold text-white">
+                        {timeRange || "Time to be confirmed"} ({event.eventLengthHours}h)
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">
+                  <div className="flex items-start gap-3">
+                    <MapPin className="text-[#b11226]" size={18} />
+                    <div>
+                      <p className="text-xs text-gray-400">Venue</p>
+                      <p className="font-semibold text-white">{event.venueName}</p>
+                      <p className="text-gray-300 text-sm leading-snug">
+                        {buildAddress(event) || "Address to be confirmed"}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="flex items-start gap-3">
+                    <Users className="text-[#b11226]" size={18} />
+                    <div>
+                      <p className="text-xs text-gray-400">Attendance</p>
+                      <p className="font-semibold text-white">{event.capacity} capacity</p>
+                      <p className="text-gray-300 text-sm">{event.alcohol ? "Alcohol served" : "No alcohol"}</p>
+                    </div>
+                  </div>
+                </div>
               </div>
 
-              <div>
-                <h3 className="text-lg font-semibold text-[#b11226]">
-                  About this event
-                </h3>
-                <p className="text-gray-300">{event.description}</p>
-              </div>
+              {event.genres && event.genres.length > 0 && (
+                <div className="flex flex-wrap gap-2">
+                  {event.genres.map((genre) => (
+                    <span
+                      key={genre}
+                      className="px-3 py-1 rounded-full bg-[#b11226]/15 border border-[#b11226]/30 text-sm text-gray-100"
+                    >
+                      {genre}
+                    </span>
+                  ))}
+                </div>
+              )}
+
+              {event.about && (
+                <div className="space-y-2">
+                  <h2 className="text-xl font-semibold">About</h2>
+                  <p className="text-gray-200 leading-relaxed">{event.about}</p>
+                </div>
+              )}
+
+              {event.performers && event.performers.length > 0 && (
+                <div className="space-y-3">
+                  <h2 className="text-xl font-semibold">Performers</h2>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                    {event.performers.map((perf) => (
+                      <div
+                        key={perf.id || perf.performerName}
+                        className="bg-white/5 border border-white/10 rounded-lg p-3 shadow-inner space-y-1"
+                      >
+                        <div className="flex items-start justify-between gap-2">
+                          <p className="font-semibold text-white leading-tight">{perf.performerName}</p>
+                          {perf.performerLink && (
+                            <a
+                              href={perf.performerLink}
+                              target="_blank"
+                              rel="noreferrer"
+                              className="text-[11px] text-[#f7c0c7] underline hover:text-white"
+                            >
+                              Link
+                            </a>
+                          )}
+                        </div>
+                        <div className="flex flex-wrap gap-1">
+                          {[perf.genre1, perf.genre2, perf.genre3]
+                            .filter(Boolean)
+                            .map((g) => (
+                              <span
+                                key={`${perf.performerName}-${g}`}
+                                className="px-2 py-0.5 text-[11px] rounded-full bg-[#b11226]/15 border border-[#b11226]/30 text-gray-100"
+                              >
+                                {g}
+                              </span>
+                            ))}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              )}
             </div>
-
-            {/* Mapa */}
-            <div className="rounded-xl overflow-hidden border border-[#b11226]/30 shadow-lg mt-8 mb-8">
-              <iframe
-                title="event-map"
-                src={event.map}
-                width="100%"
-                height="250"
-                allowFullScreen
-                loading="lazy"
-              ></iframe>
-            </div>
-             {/*
-            <button className="px-8 py-3 bg-[#b11226] hover:bg-[#d31a33] rounded-md text-white font-semibold transition-all shadow-lg hover:shadow-[#b11226]/50">
-              Buy Tickets
-            </button>*/}
-          </motion.div>
-        </div>
-
-        {/* Galería */}
-        <div className="mt-16">
-          <h3 className="text-2xl font-semibold text-[#b11226] mb-6">
-            Gallery
-          </h3>
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-6">
-            {gallery.map((img, index) => (
-              <motion.img
-                key={index}
-                src={img}
-                alt="Concert"
-                onClick={() => setSelectedImage(img)}
-                className="rounded-xl border border-[#b11226]/30 object-cover w-full h-48 cursor-pointer hover:scale-105 transition-transform duration-300 shadow-lg hover:shadow-[#b11226]/30"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 1 }}
-                transition={{ delay: index * 0.15 }}
-              />
-            ))}
           </div>
         </div>
-
-        {/* Modal de imagen ampliada */}
-        <AnimatePresence>
-          {selectedImage && (
-            <motion.div
-              className="fixed inset-0 bg-black/90 flex items-center justify-center z-50"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-            >
-              <motion.img
-                src={selectedImage}
-                alt="Full view"
-                className="max-w-4xl max-h-[80vh] rounded-xl border border-[#b11226]/50 shadow-2xl"
-                initial={{ scale: 0.8, opacity: 0 }}
-                animate={{ scale: 1, opacity: 1 }}
-                exit={{ scale: 0.8, opacity: 0 }}
-                transition={{ duration: 0.3 }}
-              />
-              <button
-                onClick={() => setSelectedImage(null)}
-                className="absolute top-10 right-10 text-white text-2xl bg-[#b11226] hover:bg-[#d31a33] px-4 py-2 rounded-lg"
-              >
-                ✕
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
       </div>
-    </section>
+    </>
   );
 }

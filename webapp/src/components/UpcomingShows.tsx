@@ -110,7 +110,7 @@ export default function UpcomingShows({ id }: UpcomingShowsProps) {
             {activeEvent.description}
           </p>
           <button
-            onClick={() => navigate(`/event/${events[activeIndex]?.id || activeIndex + 1}`)}
+            onClick={() => navigate(`/events/${events[activeIndex]?.id || activeIndex + 1}`)}
             className="px-6 py-3 bg-[#b11226] hover:bg-[#d31a33] rounded-md text-white font-semibold transition-all shadow-lg hover:shadow-[#b11226]/50"
           >
             More Info

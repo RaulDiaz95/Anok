@@ -13,9 +13,10 @@ import AdminReviewEventDetail from "./AdminReviewEventDetail";
 export default function AppRoutes() {
   return (
     <BrowserRouter basename="/">
-      <ScrollToTop />  {/* 👈 este es el truco */}
+      <ScrollToTop />  {/* ĐY'^ este es el truco */}
       <Routes>
         <Route path="/" element={<LandingPage />} />
+        <Route path="/events/:id" element={<EventDetail />} />
         <Route path="/event/:id" element={<EventDetail />} />
         <Route path="/login" element={<Login />} />
         <Route path="/signup" element={<Signup />} />
