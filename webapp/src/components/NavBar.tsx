@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+﻿import { useEffect, useState } from "react";
 import { motion } from "framer-motion";
-import { useLocation, useNavigate } from "react-router-dom";
-import { useAuth } from "../contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 import { LogOut, User } from "lucide-react";
+import { useAuth } from "../contexts/AuthContext";
+import { AnokBrand } from "./AnokBrand";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -10,7 +11,6 @@ export default function Navbar() {
   const [profileOpen, setProfileOpen] = useState(false);
   const { user, isAuthenticated, logout } = useAuth();
   const navigate = useNavigate();
-  const location = useLocation();
 
   useEffect(() => {
     const handleScroll = () => setScrolled(window.scrollY > 50);
@@ -18,45 +18,22 @@ export default function Navbar() {
     return () => window.removeEventListener("scroll", handleScroll);
   }, []);
 
-  const navItems = [
-    { label: "Home", href: "#home" },
-    { label: "Discover", href: "#discover" },
-    { label: "Upcoming", href: "#events" },
-    { label: "About", href: "#about" },
-    { label: "News", href: "#news" },
-  ];
-
   const handleLogout = () => {
     logout();
     setProfileOpen(false);
+    setMenuOpen(false);
     navigate("/");
   };
 
-  const isSuper = user?.roles?.includes("ROLE_SUPERUSER");
-
-  const handleMyEvents = () => {
-    navigate("/events/mine");
-    setProfileOpen(false);
-    setMenuOpen(false);
-  };
-
-  const handleAdmin = () => {
-    navigate("/admin/review-events");
+  const handleDashboard = () => {
+    navigate("/dashboard/events");
     setProfileOpen(false);
     setMenuOpen(false);
   };
 
   const handleCreateEvent = () => {
     navigate("/events/new");
-  };
-
-  const handleNavClick = (href: string) => {
-    if (location.pathname === "/") {
-      const section = document.querySelector(href);
-      if (section) section.scrollIntoView({ behavior: "smooth" });
-    } else {
-      navigate({ pathname: "/", hash: href });
-    }
+    setMenuOpen(false);
   };
 
   return (
@@ -65,112 +42,66 @@ export default function Navbar() {
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.6 }}
       className={`fixed top-0 left-0 w-full z-50 transition-all duration-500 ${
-        scrolled
-          ? "bg-[#0f0f1a]/90 backdrop-blur-md shadow-lg"
-          : "bg-transparent"
+        scrolled ? "bg-[#0f0f1a]/90 backdrop-blur-md shadow-lg" : "bg-transparent"
       }`}
     >
       <div className="max-w-7xl mx-auto flex items-center justify-between px-6 md:px-12 py-4 text-white">
-        <a
-          href="#home"
-          className="text-2xl font-bold text-[#b11226] hover:text-[#d31a33] transition"
-        >
-          Anok<span className="text-white">Events</span>
-        </a>
+        <AnokBrand />
 
         <div className="flex items-center gap-6">
-          <ul className="hidden md:flex gap-8 font-medium tracking-wide">
-            {navItems.map((item) => (
-              <li key={item.href}>
-                <a
-                  href={item.href}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleNavClick(item.href);
-                  }}
-                  className="hover:text-[#b11226] transition cursor-pointer"
+          <div className="hidden md:flex gap-3 items-center">
+            {isAuthenticated ? (
+              <div className="relative">
+                <button
+                  onClick={() => setProfileOpen(!profileOpen)}
+                  className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#b11226]/10 hover:bg-[#b11226]/20 border border-[#b11226]/30 transition-all"
                 >
-                  {item.label}
-                </a>
-              </li>
-            ))}
-          </ul>
+                  <User size={18} className="text-[#b11226]" />
+                  <span className="text-white font-medium">{user?.fullName}</span>
+                </button>
 
-          <div className="hidden md:flex gap-3">
-            <button
-              onClick={() => navigate("/events")}
-              className="px-4 py-2 border border-[#b11226]/40 rounded-lg text-white hover:bg-[#b11226]/10 transition"
-            >
-              Events
-            </button>
-            <button
-              onClick={handleCreateEvent}
-              className="px-4 py-2 border border-[#b11226]/40 rounded-lg text-white hover:bg-[#b11226]/10 transition"
-            >
-              Create Event
-            </button>
-          </div>
-
-          {isAuthenticated ? (
-            <div className="hidden md:block relative">
-              <button
-                onClick={() => setProfileOpen(!profileOpen)}
-                className="flex items-center gap-2 px-4 py-2 rounded-lg bg-[#b11226]/10 hover:bg-[#b11226]/20 border border-[#b11226]/30 transition-all"
-              >
-                <User size={18} className="text-[#b11226]" />
-                <span className="text-white font-medium">{user?.fullName}</span>
-              </button>
-
-              {profileOpen && (
-                <motion.div
-                  initial={{ opacity: 0, y: -10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  className="absolute right-0 mt-2 w-48 bg-[#1a1a2e] border border-[#b11226]/20 rounded-lg shadow-xl overflow-hidden"
-                >
-                  <div className="px-4 py-3 border-b border-[#b11226]/20">
-                    <p className="text-sm text-gray-400">Signed in as</p>
-                    <p className="text-white font-medium truncate">{user?.email}</p>
-                  </div>
-                  <button
-                    onClick={handleMyEvents}
-                    className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-[#b11226]/10 transition-colors text-white border-b border-[#b11226]/20"
+                {profileOpen && (
+                  <motion.div
+                    initial={{ opacity: 0, y: -10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="absolute right-0 mt-2 w-48 bg-[#1a1a2e] border border-[#b11226]/20 rounded-lg shadow-xl overflow-hidden"
                   >
-                    <User size={16} />
-                    <span>My Events</span>
-                  </button>
-                  {isSuper && (
+                    <div className="px-4 py-3 border-b border-[#b11226]/20">
+                      <p className="text-sm text-gray-400">Signed in as</p>
+                      <p className="text-white font-medium truncate">{user?.email}</p>
+                    </div>
                     <button
-                      onClick={handleAdmin}
+                      onClick={handleDashboard}
                       className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-[#b11226]/10 transition-colors text-white border-b border-[#b11226]/20"
                     >
                       <User size={16} />
-                      <span>Admin Review</span>
+                      <span>Dashboard</span>
                     </button>
-                  )}
-                  <button
-                    onClick={handleLogout}
-                    className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-[#b11226]/10 transition-colors text-white"
-                  >
-                    <LogOut size={16} />
-                    <span>Sign out</span>
-                  </button>
-                </motion.div>
-              )}
-            </div>
-          ) : (
-            <button
-              onClick={() => navigate("/login")}
-              className="hidden md:block px-6 py-2 bg-[#b11226] hover:bg-[#d31a33] text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105"
-            >
-              Login
-            </button>
-          )}
+                    <button
+                      onClick={handleLogout}
+                      className="w-full flex items-center gap-2 px-4 py-3 text-left hover:bg-[#b11226]/10 transition-colors text-white"
+                    >
+                      <LogOut size={16} />
+                      <span>Sign out</span>
+                    </button>
+                  </motion.div>
+                )}
+              </div>
+            ) : (
+              <button
+                onClick={() => navigate("/login")}
+                className="px-6 py-2 bg-[#b11226] hover:bg-[#d31a33] text-white font-semibold rounded-lg transition-all duration-300 transform hover:scale-105 btn-animated"
+              >
+                Login
+              </button>
+            )}
+          </div>
 
           <button
             className="md:hidden text-2xl"
             onClick={() => setMenuOpen(!menuOpen)}
           >
-            ☰
+            â˜°
           </button>
         </div>
       </div>
@@ -178,43 +109,6 @@ export default function Navbar() {
       {menuOpen && (
         <div className="md:hidden bg-[#0f0f1a]/95 backdrop-blur-lg border-t border-[#b11226]/20">
           <ul className="flex flex-col items-center py-4 space-y-4 text-lg font-medium">
-            {navItems.map((item) => (
-              <li key={item.href}>
-                <a
-                  href={item.href}
-                  onClick={(e) => {
-                    e.preventDefault();
-                    handleNavClick(item.href);
-                    setMenuOpen(false);
-                  }}
-                  className="hover:text-[#b11226] transition"
-                >
-                  {item.label}
-                </a>
-              </li>
-            ))}
-
-            <li className="pt-2 w-full px-6 space-y-3">
-              <button
-                onClick={() => {
-                  navigate("/events");
-                  setMenuOpen(false);
-                }}
-                className="w-full px-4 py-2 border border-[#b11226]/40 rounded-lg text-white hover:bg-[#b11226]/10 transition"
-              >
-                Events
-              </button>
-              <button
-                onClick={() => {
-                  handleCreateEvent();
-                  setMenuOpen(false);
-                }}
-                className="w-full px-4 py-2 border border-[#b11226]/40 rounded-lg text-white hover:bg-[#b11226]/10 transition"
-              >
-                Create Event
-              </button>
-            </li>
-
             {isAuthenticated ? (
               <>
                 <li className="border-t border-[#b11226]/20 pt-4 w-full text-center">
@@ -223,28 +117,15 @@ export default function Navbar() {
                 </li>
                 <li className="w-full px-6">
                   <button
-                    onClick={handleMyEvents}
+                    onClick={handleDashboard}
                     className="w-full px-4 py-2 border border-[#b11226]/40 rounded-lg text-white hover:bg-[#b11226]/10 transition"
                   >
-                    My Events
+                    Dashboard
                   </button>
                 </li>
-                {isSuper && (
-                  <li className="w-full px-6">
-                    <button
-                      onClick={handleAdmin}
-                      className="w-full px-4 py-2 border border-[#b11226]/40 rounded-lg text-white hover:bg-[#b11226]/10 transition"
-                    >
-                      Admin Review
-                    </button>
-                  </li>
-                )}
                 <li>
                   <button
-                    onClick={() => {
-                      handleLogout();
-                      setMenuOpen(false);
-                    }}
+                    onClick={handleLogout}
                     className="flex items-center gap-2 px-6 py-2 bg-[#b11226]/10 hover:bg-[#b11226]/20 border border-[#b11226]/30 rounded-lg transition-all"
                   >
                     <LogOut size={16} />
@@ -271,3 +152,4 @@ export default function Navbar() {
     </motion.nav>
   );
 }
+

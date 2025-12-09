@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import Navbar from "../components/NavBar";
 import { FlyerFrame } from "../components/FlyerFrame";
+import { AnimatedLoader } from "../components/AnimatedLoader";
 import { eventService } from "../services/eventService";
 import { Event } from "../types/event";
 
@@ -91,7 +92,7 @@ export default function EventDetail() {
       <>
         <Navbar />
         <div className="min-h-screen flex items-center justify-center bg-[#0f0f1a] text-white">
-          Loading event...
+          <AnimatedLoader label="Loading event..." />
         </div>
       </>
     );
@@ -117,7 +118,7 @@ export default function EventDetail() {
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-gradient-to-b from-[#0f0f1a] via-[#12121c] to-black text-white pt-28 pb-16">
+      <div className="min-h-screen bg-gradient-to-b from-[#0f0f1a] via-[#12121c] to-black text-white pt-28 pb-16 fade-in-up">
         <div className="max-w-6xl mx-auto px-4 space-y-8">
           <button
             onClick={() => navigate(-1)}

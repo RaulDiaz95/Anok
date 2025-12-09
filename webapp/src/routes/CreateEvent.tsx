@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -297,7 +297,16 @@ export default function CreateEvent() {
   if (isLoading || isLoadingEvent) {
     return (
       <div className="min-h-screen flex items-center justify-center text-white">
-        {isLoading ? "Checking session..." : "Loading event..."}
+        <div className="eq-loader">
+          <span />
+          <span />
+          <span />
+          <span />
+          <span />
+        </div>
+        <span className="ml-3 text-sm text-gray-300">
+          {isLoading ? "Checking session..." : "Loading event..."}
+        </span>
       </div>
     );
   }

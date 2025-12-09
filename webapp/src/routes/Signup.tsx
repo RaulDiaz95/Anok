@@ -2,6 +2,7 @@ import { useState } from "react";
 import { useNavigate, Link } from "react-router-dom";
 import { useAuth } from "../contexts/AuthContext";
 import { motion } from "framer-motion";
+import { AnokBrand } from "../components/AnokBrand";
 
 export default function Signup() {
   const [fullName, setFullName] = useState("");
@@ -28,7 +29,7 @@ export default function Signup() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0f0f1a] flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0f0f1a] flex items-center justify-center px-4 fade-in-up">
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
@@ -36,6 +37,9 @@ export default function Signup() {
         className="w-full max-w-md"
       >
         <div className="bg-[#1a1a2e]/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-[#b11226]/20 p-8">
+          <div className="flex justify-center mb-6">
+            <AnokBrand />
+          </div>
           <div className="text-center mb-8">
             <h1 className="text-3xl font-bold text-white mb-2">
               Join <span className="text-[#b11226]">Anok</span>Events
@@ -111,7 +115,7 @@ export default function Signup() {
             <button
               type="submit"
               disabled={isLoading}
-              className="w-full bg-[#b11226] hover:bg-[#d31a33] text-white font-semibold py-3 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed transform hover:scale-[1.02] active:scale-[0.98]"
+              className="w-full bg-[#b11226] hover:bg-[#d31a33] text-white font-semibold py-3 rounded-lg transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed btn-animated"
             >
               {isLoading ? "Creating account..." : "Sign Up"}
             </button>

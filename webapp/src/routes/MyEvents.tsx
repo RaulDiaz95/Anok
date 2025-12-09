@@ -7,7 +7,11 @@ import { eventService } from "../services/eventService";
 import { Event } from "../types/event";
 import { useAuth } from "../contexts/AuthContext";
 
-export default function MyEvents() {
+type MyEventsProps = {
+  embedded?: boolean;
+};
+
+export default function MyEvents({ embedded = false }: MyEventsProps) {
   const PAGE_SIZE = 20;
   const navigate = useNavigate();
   const { isAuthenticated, isLoading } = useAuth();
@@ -180,7 +184,7 @@ export default function MyEvents() {
 
   if (isLoading || !isAuthenticated) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-white">
+      <div className="min-h-full flex items-center justify-center text-white">
         {isLoading ? "Checking session..." : "Redirecting to login..."}
       </div>
     );
@@ -188,9 +192,9 @@ export default function MyEvents() {
 
   return (
     <>
-      <Navbar />
-      <div className="min-h-screen bg-gradient-to-b from-[#0f0f1a] via-[#12121c] to-black text-white pt-28 pb-16">
-        <div className="max-w-6xl mx-auto px-4">
+      {!embedded && <Navbar />}
+      <div className="min-h-full bg-gradient-to-b from-[#0f0f1a] via-[#12121c] to-black text-white fade-in-up">
+        <div className={`max-w-6xl mx-auto px-4 ${embedded ? "pt-10 pb-12" : "pt-28 pb-16"}`}>
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-10">
             <div>
               <h1 className="text-3xl font-bold mb-2">My Events</h1>
@@ -201,14 +205,14 @@ export default function MyEvents() {
             <div className="flex gap-3">
               <button
                 onClick={fetchMyEvents}
-                className="px-4 py-2 border border-[#b11226]/40 rounded-lg text-white hover:bg-[#b11226]/10 transition flex items-center gap-2"
+                className="px-4 py-2 border border-[#b11226]/40 rounded-lg text-white hover:bg-[#b11226]/10 transition flex items-center gap-2 btn-animated"
               >
                 <RefreshCw size={16} />
                 Refresh
               </button>
               <Link
                 to="/events/new"
-                className="px-4 py-2 bg-[#b11226] hover:bg-[#d31a33] text-white rounded-lg font-semibold transition flex items-center gap-2"
+                className="px-4 py-2 bg-[#b11226] hover:bg-[#d31a33] text-white rounded-lg font-semibold transition flex items-center gap-2 btn-animated pulse-soft"
               >
                 Create Event
               </Link>
@@ -222,9 +226,15 @@ export default function MyEvents() {
           )}
 
           {isFetching && (
-            <div className="flex items-center gap-2 text-gray-300">
-              <Loader2 className="animate-spin" size={18} />
-              Loading your events...
+            <div className="flex items-center gap-3 text-gray-300">
+              <div className="eq-loader">
+                <span />
+                <span />
+                <span />
+                <span />
+                <span />
+              </div>
+              <span>Loading your events...</span>
             </div>
           )}
 
@@ -276,17 +286,23 @@ export default function MyEvents() {
                       <h2 className="text-2xl font-semibold text-white">{title}</h2>
                       <button
                         onClick={() => setShow(!show)}
-                        className="text-sm px-3 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition text-gray-200"
+                        className="text-sm px-3 py-1 rounded-lg border border-white/10 bg-white/5 hover:bg-white/10 transition text-gray-200 inline-flex items-center gap-2"
                       >
+                        <span
+                          className={`transition-transform duration-300 ${show ? "rotate-180" : ""}`}
+                        >
+                          ▾
+                        </span>
                         {show ? "Hide" : "Show"}
                       </button>
                     </div>
                     <div
-                      className={`transition-all duration-300 ${
-                        show ? "opacity-100 max-h-[3000px]" : "opacity-0 max-h-0 overflow-hidden"
-                      }`}
+                      className={`
+                        transition-all duration-300 origin-top overflow-hidden
+                        ${show ? "opacity-100 scale-y-100" : "opacity-0 scale-y-0 h-0 pointer-events-none"}
+                      `}
                     >
-                      <div className="overflow-x-auto bg-[#1a1a2e]/70 border border-[#b11226]/10 rounded-2xl shadow-lg">
+                      <div className="bg-[#1a1a2e]/70 border border-[#b11226]/10 rounded-2xl shadow-lg w-full overflow-hidden">
                         <table className="min-w-full text-sm">
                           <thead className="bg-white/5 text-gray-300 uppercase text-xs tracking-wide">
                             <tr>
@@ -309,7 +325,7 @@ export default function MyEvents() {
                               </tr>
                             )}
                             {paged.map((event) => (
-                              <tr key={event.id} className="hover:bg-white/5">
+                              <tr key={event.id} className="hover:bg-white/5 transition card-enter">
                                 <td className="px-4 py-3">
                                   {event.flyerUrl ? (
                                     <div className="w-16 h-20 md:w-20 md:h-24 rounded-lg overflow-hidden border border-white/10 bg-white/5">

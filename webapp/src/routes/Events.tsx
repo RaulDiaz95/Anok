@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/NavBar";
 import { EventFlyerCard } from "../components/EventFlyerCard";
+import { AnimatedLoader } from "../components/AnimatedLoader";
 import { eventService } from "../services/eventService";
 import { Event } from "../types/event";
 
@@ -70,11 +71,12 @@ export default function Events() {
   }, [hasMore, loadEvents, loading, page]);
 
   const hasEvents = events.length > 0;
+  const isInitialLoading = isLoading && !hasEvents && !error;
 
   return (
     <>
       <Navbar />
-      <div className="min-h-screen bg-gradient-to-b from-[#0f0f1a] via-[#12121c] to-black text-white pt-32 pb-16">
+      <div className="min-h-screen bg-gradient-to-b from-[#0f0f1a] via-[#12121c] to-black text-white pt-32 pb-16 fade-in-up">
         <div className="max-w-6xl mx-auto px-4">
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-6 mb-12">
             <div>
@@ -96,14 +98,16 @@ export default function Events() {
             </div>
             <Link
               to="/events/new"
-              className="px-6 py-3 bg-[#b11226] hover:bg-[#d31a33] rounded-xl text-white font-semibold transition-all shadow-lg shadow-[#b11226]/30"
+              className="px-6 py-3 bg-[#b11226] hover:bg-[#d31a33] rounded-xl text-white font-semibold transition-all shadow-lg shadow-[#b11226]/30 btn-animated pulse-soft"
             >
               Create Event
             </Link>
           </div>
 
-          {isLoading && (
-            <div className="text-center text-gray-400">Loading events...</div>
+          {isInitialLoading && (
+            <div className="py-12 flex justify-center">
+              <AnimatedLoader label="Loading events..." />
+            </div>
           )}
 
           {error && (
@@ -117,7 +121,7 @@ export default function Events() {
           )}
 
           {hasEvents && (
-            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-5 md:gap-6">
+            <div className="flex flex-wrap gap-5 md:gap-6 justify-center">
               {events.map((event, index) => (
                 <motion.div
                   key={event.id}
