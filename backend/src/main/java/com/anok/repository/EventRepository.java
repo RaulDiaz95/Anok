@@ -18,7 +18,7 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     List<Event> findAllByEventDateTimeAfterOrderByEventDateTimeAsc(LocalDateTime cutoff);
 
     @EntityGraph(attributePaths = {"owner", "genres", "performers"})
-    List<Event> findAllByEventDateTimeAfterAndIsLiveTrueOrderByEventDateTimeAsc(LocalDateTime cutoff);
+    List<Event> findAllByEventDateTimeGreaterThanEqualAndIsLiveTrueOrderByEventDateTimeAsc(LocalDateTime cutoff);
 
     @EntityGraph(attributePaths = {"owner", "genres", "performers"})
     List<Event> findAllByOrderByEventDateTimeAsc();

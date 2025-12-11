@@ -13,6 +13,7 @@ import com.anok.repository.UserRepository;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
 import java.util.ArrayList;
@@ -85,8 +86,8 @@ public class EventService {
     }
 
     public List<EventResponse> listUpcomingEvents() {
-        LocalDateTime now = LocalDateTime.now();
-        return eventRepository.findAllByEventDateTimeAfterAndIsLiveTrueOrderByEventDateTimeAsc(now)
+        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
+        return eventRepository.findAllByEventDateTimeGreaterThanEqualAndIsLiveTrueOrderByEventDateTimeAsc(startOfToday)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
