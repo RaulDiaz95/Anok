@@ -86,8 +86,8 @@ public class EventService {
     }
 
     public List<EventResponse> listUpcomingEvents() {
-        LocalDateTime startOfToday = LocalDate.now().atStartOfDay();
-        return eventRepository.findAllByEventDateTimeGreaterThanEqualAndIsLiveTrueOrderByEventDateTimeAsc(startOfToday)
+        LocalDate today = LocalDate.now();
+        return eventRepository.findAllByEventDateGreaterThanEqualAndIsLiveTrueOrderByEventDateTimeAsc(today)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
