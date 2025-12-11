@@ -16,6 +16,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -86,8 +87,9 @@ public class EventService {
     }
 
     public List<EventResponse> listUpcomingEvents() {
-        LocalDate today = LocalDate.now();
-        return eventRepository.findAllByEventDateGreaterThanEqualAndIsLiveTrueOrderByEventDateTimeAsc(today)
+        // Use UTC date and include a 1-day grace window to avoid timezone cutoffs for "today"
+        LocalDate utcToday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
+        return eventRepository.findAllByEventDateGreaterThanEqualAndIsLiveTrueOrderByEventDateTimeAsc(utcToday)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());

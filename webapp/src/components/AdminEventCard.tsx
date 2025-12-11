@@ -1,3 +1,4 @@
+import { format, parseISO } from "date-fns";
 import { Event } from "../types/event";
 import { FlyerFrame } from "./FlyerFrame";
 
@@ -7,11 +8,19 @@ type Props = {
 };
 
 export function AdminEventCard({ event, onReview }: Props) {
+  const dateLabel = (() => {
+    try {
+      return format(parseISO(event.eventDate), "MM/dd/yyyy");
+    } catch {
+      return event.eventDate;
+    }
+  })();
+
   return (
     <div className="bg-[#0f0f1a]/80 border border-white/10 rounded-xl p-4 flex gap-4 items-center">
       <FlyerFrame src={event.flyerUrl} alt={event.title} size="sm" />
       <div className="flex-1 space-y-1 min-w-0">
-        <p className="text-xs text-gray-400">{event.eventDate}</p>
+        <p className="text-xs text-gray-400">{dateLabel}</p>
         <h3 className="text-lg font-semibold text-white truncate">{event.title}</h3>
         {event.performers?.length > 0 && (
           <p className="text-xs text-gray-400 truncate">

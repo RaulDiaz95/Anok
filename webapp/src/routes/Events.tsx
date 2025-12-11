@@ -26,12 +26,20 @@ export default function Events() {
       try {
         const data = await eventService.list(pageToLoad, PAGE_SIZE);
         const newEvents = data.filter((evt) => evt.isLive);
-        setEvents((prev) => (pageToLoad === 0 ? newEvents : [...prev, ...newEvents]));
-        if (newEvents.length < PAGE_SIZE) {
-          setHasMore(false);
-        } else {
-          setHasMore(true);
-        }
+        setEvents((prev) => {
+          if (pageToLoad === 0) {
+            setHasMore(newEvents.length >= PAGE_SIZE);
+            return newEvents;
+          }
+          const existingIds = new Set(prev.map((evt) => evt.id));
+          const uniqueNew = newEvents.filter((evt) => !existingIds.has(evt.id));
+          if (uniqueNew.length === 0) {
+            setHasMore(false);
+            return prev;
+          }
+          setHasMore(uniqueNew.length >= PAGE_SIZE);
+          return [...prev, ...uniqueNew];
+        });
         setPage(pageToLoad + 1);
       } catch (err) {
         setError(err instanceof Error ? err.message : "Failed to load events");

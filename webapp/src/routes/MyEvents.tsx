@@ -63,10 +63,10 @@ export default function MyEvents({ embedded = false }: MyEventsProps) {
   const formatDate = (event: Event) => {
     const dt = event.eventDateTime || `${event.eventDate}T${event.startTime}`;
     try {
-      return format(new Date(dt), "PPP p");
+      return format(new Date(dt), "MM/dd/yyyy h:mm a");
     } catch {
       try {
-        return format(parseISO(event.eventDate), "PPP");
+        return format(parseISO(event.eventDate), "MM/dd/yyyy");
       } catch {
         return "TBD";
       }

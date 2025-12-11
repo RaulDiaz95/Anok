@@ -1,3 +1,4 @@
+import { format, parseISO } from "date-fns";
 import { useEffect, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
 import { FlyerFrame } from "../components/FlyerFrame";
@@ -7,6 +8,20 @@ import { useAuth } from "../contexts/AuthContext";
 
 type Props = {
   embedded?: boolean;
+};
+
+const formatDateTime = (date?: string, time?: string | null) => {
+  if (!date) return "";
+  const dt = time ? `${date}T${time}` : date;
+  try {
+    return format(new Date(dt), time ? "MM/dd/yyyy h:mm a" : "MM/dd/yyyy");
+  } catch {
+    try {
+      return format(parseISO(date), "MM/dd/yyyy");
+    } catch {
+      return date;
+    }
+  }
 };
 
 export default function AdminReviewEventDetail({ embedded = false }: Props) {
@@ -69,7 +84,7 @@ export default function AdminReviewEventDetail({ embedded = false }: Props) {
             <div className="space-y-2">
               <h1 className="text-2xl font-bold">{event.title}</h1>
               <p className="text-gray-300">
-                {event.eventDate} {event.startTime && `at ${event.startTime}`}
+                {formatDateTime(event.eventDate, event.startTime)}
               </p>
               <p className="text-gray-300">{event.venueName}</p>
               <p className="text-gray-400">{event.venueAddress}</p>

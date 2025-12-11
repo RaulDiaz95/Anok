@@ -12,10 +12,10 @@ const formatDate = (event?: Event | null) => {
   if (!event) return "";
   const dt = event.eventDateTime || `${event.eventDate}T${event.startTime}`;
   try {
-    return format(new Date(dt), "PPP");
+    return format(new Date(dt), "MM/dd/yyyy");
   } catch {
     try {
-      return format(parseISO(event.eventDate), "PPP");
+      return format(parseISO(event.eventDate), "MM/dd/yyyy");
     } catch {
       return "Date to be confirmed";
     }
@@ -25,7 +25,7 @@ const formatDate = (event?: Event | null) => {
 const formatTime = (time?: string | null) => {
   if (!time) return "";
   try {
-    return format(parseISO(`1970-01-01T${time}`), "p");
+    return format(parseISO(`1970-01-01T${time}`), "h:mm a");
   } catch {
     return time;
   }

@@ -5,6 +5,7 @@ import org.springframework.data.jpa.repository.EntityGraph;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.stereotype.Repository;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.Optional;
@@ -18,7 +19,7 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     List<Event> findAllByEventDateTimeAfterOrderByEventDateTimeAsc(LocalDateTime cutoff);
 
     @EntityGraph(attributePaths = {"owner", "genres", "performers"})
-    List<Event> findAllByEventDateGreaterThanEqualAndIsLiveTrueOrderByEventDateTimeAsc(java.time.LocalDate cutoff);
+    List<Event> findAllByEventDateGreaterThanEqualAndIsLiveTrueOrderByEventDateTimeAsc(LocalDate cutoff);
 
     @EntityGraph(attributePaths = {"owner", "genres", "performers"})
     List<Event> findAllByOrderByEventDateTimeAsc();
