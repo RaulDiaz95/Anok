@@ -1,8 +1,8 @@
 import { buildApiUrl } from "../config/env";
-import { CreateEventInput, Event } from "../types/event";
+import { CreateEventInput, Event, PageResponse } from "../types/event";
 
 class EventService {
-  async list(page = 0, size = 20): Promise<Event[]> {
+  async list(page = 0, size = 20): Promise<PageResponse<Event>> {
     const response = await fetch(buildApiUrl(`/events?page=${page}&size=${size}`), {
       method: "GET",
     });

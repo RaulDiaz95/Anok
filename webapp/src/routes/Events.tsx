@@ -1,85 +1,47 @@
 import { motion } from "framer-motion";
-import { useCallback, useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
 import { Link } from "react-router-dom";
 import Navbar from "../components/NavBar";
 import { EventFlyerCard } from "../components/EventFlyerCard";
 import { AnimatedLoader } from "../components/AnimatedLoader";
-import { eventService } from "../services/eventService";
-import { Event } from "../types/event";
+import { useInfiniteEvents } from "../hooks/useEvents";
 
 export default function Events() {
-  const [events, setEvents] = useState<Event[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [error, setError] = useState("");
-  const [page, setPage] = useState(0);
-  const [hasMore, setHasMore] = useState(true);
-  const [loading, setLoading] = useState(false);
   const loaderRef = useRef<HTMLDivElement | null>(null);
-  const PAGE_SIZE = 20;
+  const {
+    data,
+    isLoading,
+    isFetchingNextPage,
+    hasNextPage,
+    fetchNextPage,
+    error
+  } = useInfiniteEvents();
 
-  const loadEvents = useCallback(
-    async (pageToLoad: number) => {
-      if (loading) return;
-      setLoading(true);
-      if (pageToLoad === 0) setIsLoading(true);
-      setError("");
-      try {
-        const data = await eventService.list(pageToLoad, PAGE_SIZE);
-        const newEvents = data.filter((evt) => evt.isLive);
-        setEvents((prev) => {
-          if (pageToLoad === 0) {
-            setHasMore(newEvents.length >= PAGE_SIZE);
-            return newEvents;
-          }
-          const existingIds = new Set(prev.map((evt) => evt.id));
-          const uniqueNew = newEvents.filter((evt) => !existingIds.has(evt.id));
-          if (uniqueNew.length === 0) {
-            setHasMore(false);
-            return prev;
-          }
-          setHasMore(uniqueNew.length >= PAGE_SIZE);
-          return [...prev, ...uniqueNew];
-        });
-        setPage(pageToLoad + 1);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Failed to load events");
-        setHasMore(false);
-      } finally {
-        setLoading(false);
-        setIsLoading(false);
-      }
-    },
-    [loading, PAGE_SIZE]
-  );
-
-  useEffect(() => {
-    loadEvents(0);
-  }, [loadEvents]);
+  const events = data?.pages.flatMap((page) => page.content) ?? [];
+  const hasEvents = events.length > 0;
+  const isInitialLoading = isLoading && !hasEvents && !error;
 
   useEffect(() => {
     const loader = loaderRef.current;
-    if (!loader || !hasMore) return;
+    if (!loader || !hasNextPage) return;
 
     const observer = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        if (entry.isIntersecting && !loading) {
-          loadEvents(page);
+        if (entry.isIntersecting && !isFetchingNextPage) {
+          fetchNextPage();
         }
       },
       {
         root: null,
-        rootMargin: "200px",
+        rootMargin: "1500px",
         threshold: 0,
       }
     );
 
     observer.observe(loader);
     return () => observer.disconnect();
-  }, [hasMore, loadEvents, loading, page]);
-
-  const hasEvents = events.length > 0;
-  const isInitialLoading = isLoading && !hasEvents && !error;
+  }, [hasNextPage, isFetchingNextPage, fetchNextPage]);
 
   return (
     <>
@@ -119,7 +81,9 @@ export default function Events() {
           )}
 
           {error && (
-            <div className="text-center text-red-400 mb-6">{error}</div>
+            <div className="text-center text-red-400 mb-6">
+              {error instanceof Error ? error.message : "Failed to load events"}
+            </div>
           )}
 
           {!isLoading && !hasEvents && !error && (
@@ -143,7 +107,7 @@ export default function Events() {
             </div>
           )}
 
-          {loading && hasMore && (
+          {isFetchingNextPage && hasNextPage && (
             <div className="flex justify-center py-8">
               <div className="h-10 w-10 rounded-full border-2 border-white/20 border-t-[#b11226] animate-spin" />
             </div>

@@ -2,6 +2,7 @@ package com.anok.controller;
 
 import com.anok.dto.EventRequest;
 import com.anok.dto.EventResponse;
+import com.anok.dto.PageResponse;
 import com.anok.service.EventService;
 import com.fasterxml.jackson.annotation.JsonProperty;
 import jakarta.validation.Valid;
@@ -33,8 +34,11 @@ public class EventController {
     }
 
     @GetMapping
-    public ResponseEntity<List<EventResponse>> listEvents() {
-        return ResponseEntity.ok(eventService.listUpcomingEvents());
+    public ResponseEntity<PageResponse<EventResponse>> listEvents(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        return ResponseEntity.ok(eventService.listUpcomingEvents(page, size));
     }
 
     @GetMapping("/mine")

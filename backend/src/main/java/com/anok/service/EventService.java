@@ -2,6 +2,7 @@ package com.anok.service;
 
 import com.anok.dto.EventRequest;
 import com.anok.dto.EventResponse;
+import com.anok.dto.PageResponse;
 import com.anok.exception.ResourceNotFoundException;
 import com.anok.model.Event;
 import com.anok.model.EventGenre;
@@ -10,6 +11,9 @@ import com.anok.model.EventStatus;
 import com.anok.model.User;
 import com.anok.repository.EventRepository;
 import com.anok.repository.UserRepository;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -93,6 +97,27 @@ public class EventService {
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
+    }
+
+    public PageResponse<EventResponse> listUpcomingEvents(int page, int size) {
+        // Use UTC date and include a 1-day grace window to avoid timezone cutoffs for "today"
+        LocalDate utcToday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Event> eventPage = eventRepository.findAllByEventDateGreaterThanEqualAndIsLiveTrueOrderByEventDateTimeAsc(utcToday, pageable);
+        List<EventResponse> content = eventPage.getContent()
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+
+        PageResponse<EventResponse> response = new PageResponse<>();
+        response.setContent(content);
+        response.setPage(eventPage.getNumber());
+        response.setSize(eventPage.getSize());
+        response.setTotalElements(eventPage.getTotalElements());
+        response.setTotalPages(eventPage.getTotalPages());
+        response.setHasNext(eventPage.hasNext());
+        response.setHasPrevious(eventPage.hasPrevious());
+        return response;
     }
 
     public EventResponse getEvent(UUID id) {
