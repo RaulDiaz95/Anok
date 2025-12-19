@@ -41,7 +41,6 @@ lerna-debug.log*
 node_modules/
 .pnpm-store/
 .pnpm
-package-lock.json
 pnpm-lock.yaml
 yarn.lock
 

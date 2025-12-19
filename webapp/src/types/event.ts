@@ -19,7 +19,7 @@ export interface PerformerInput {
 
 export interface Event {
   id: string;
-  flyerUrl: string;
+  flyerUrl: string | null;
   eventDate: string;
   startTime: string;
   eventLengthHours: number;
@@ -56,7 +56,7 @@ export interface PageResponse<T> {
 }
 
 export interface CreateEventInput {
-  flyerUrl: string;
+  flyerUrl: string | null;
   eventDate: string;
   startTime: string;
   eventLengthHours: number;
