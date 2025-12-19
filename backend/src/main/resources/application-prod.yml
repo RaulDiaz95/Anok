@@ -49,6 +49,10 @@ cors:
   allowed-headers: "*"
   allow-credentials: true
 
+# Google OAuth
+google:
+  client-id: ${GOOGLE_CLIENT_ID:}
+
 # OpenAPI/Swagger Documentation (disabled in production by default)
 springdoc:
   api-docs:

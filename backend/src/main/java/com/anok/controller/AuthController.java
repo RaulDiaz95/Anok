@@ -1,6 +1,8 @@
 package com.anok.controller;
 
 import com.anok.dto.AuthResponse;
+import com.anok.dto.GoogleAuthRequest;
+import com.anok.dto.GoogleAuthResult;
 import com.anok.dto.LoginRequest;
 import com.anok.dto.RegisterRequest;
 import com.anok.dto.UserDTO;
@@ -15,6 +17,8 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.http.ResponseCookie;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 /**
  * Controller for authentication endpoints.
@@ -22,6 +26,8 @@ import org.springframework.http.ResponseCookie;
 @RestController
 @RequestMapping("/auth")
 public class AuthController {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthController.class);
 
     @Autowired
     private AuthenticationService authenticationService;
@@ -73,7 +79,7 @@ public class AuthController {
 
         response.addHeader("Set-Cookie", cookieBuilder.build().toString());
 
-        AuthResponse authResponse = new AuthResponse("Login successful", user);
+        AuthResponse authResponse = new AuthResponse("Login successful", user, accessToken);
         return ResponseEntity.ok(authResponse);
     }
 
@@ -116,6 +122,43 @@ public class AuthController {
 
         UserDTO user = authenticationService.getCurrentUser(email);
         return ResponseEntity.ok(user);
+    }
+
+    /**
+     * Google OAuth login/register using ID token from Google Identity Services.
+     */
+    @PostMapping("/google")
+    public ResponseEntity<AuthResponse> googleLogin(
+            @Valid @RequestBody GoogleAuthRequest request,
+            HttpServletRequest servletRequest,
+            HttpServletResponse response
+    ) {
+        try {
+            GoogleAuthResult result = authenticationService.loginWithGoogle(request.getIdToken());
+
+            boolean secure = isSecureRequest(servletRequest);
+            ResponseCookie.ResponseCookieBuilder cookieBuilder = ResponseCookie.from("access_token", result.getToken())
+                    .httpOnly(true)
+                    .secure(secure)
+                    .path("/api")
+                    .maxAge(3600);
+
+            if (secure) {
+                cookieBuilder.sameSite("None");
+            }
+
+            response.addHeader("Set-Cookie", cookieBuilder.build().toString());
+
+            AuthResponse authResponse = new AuthResponse("Login successful", result.getUser(), result.getToken());
+            return ResponseEntity.ok(authResponse);
+        } catch (com.anok.exception.ValidationException e) {
+            log.warn("Google login validation error: {}", e.getMessage());
+            return ResponseEntity.status(HttpStatus.BAD_REQUEST).body(new AuthResponse(e.getMessage(), null));
+        } catch (Exception e) {
+            log.error("Google login failed", e);
+            return ResponseEntity.status(HttpStatus.UNAUTHORIZED)
+                    .body(new AuthResponse("Google login failed", null));
+        }
     }
 
     private boolean isSecureRequest(HttpServletRequest request) {

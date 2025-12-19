@@ -23,7 +23,7 @@ export default function UserDashboardLayout() {
       <Navbar />
       <div className="flex min-h-screen pt-24">
         <DashboardSidebar />
-        <div className="flex-1 max-h-[calc(100vh-96px)] overflow-y-auto p-6 sm:p-8 fade-in-up">
+        <div className="flex-1 p-6 sm:p-8 fade-in-up">
           <Outlet />
         </div>
       </div>

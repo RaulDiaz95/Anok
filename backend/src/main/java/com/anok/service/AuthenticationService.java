@@ -1,5 +1,6 @@
 package com.anok.service;
 
+import com.anok.dto.GoogleAuthResult;
 import com.anok.dto.LoginRequest;
 import com.anok.dto.RegisterRequest;
 import com.anok.dto.UserDTO;
@@ -9,15 +10,25 @@ import com.anok.model.Role;
 import com.anok.model.User;
 import com.anok.repository.RoleRepository;
 import com.anok.repository.UserRepository;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdToken;
+import com.google.api.client.googleapis.auth.oauth2.GoogleIdTokenVerifier;
+import com.google.api.client.http.javanet.NetHttpTransport;
+import com.google.api.client.json.gson.GsonFactory;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Value;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+
+import java.security.GeneralSecurityException;
+import java.util.Collections;
+import java.util.UUID;
 
 /**
  * Service for handling authentication operations.
@@ -39,6 +50,15 @@ public class AuthenticationService {
 
     @Autowired
     private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private UserDetailsService userDetailsService;
+
+    @Value("${google.client-id:}")
+    private String googleClientId;
+
+    private final NetHttpTransport googleTransport = new NetHttpTransport();
+    private final GsonFactory gsonFactory = GsonFactory.getDefaultInstance();
 
     /**
      * Register a new user.
@@ -129,5 +149,77 @@ public class AuthenticationService {
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
         return UserDTO.fromUser(user);
+    }
+
+    /**
+     * Authenticate or register a user via Google ID token.
+     *
+     * @param idTokenString Google ID token from Google Identity Services
+     * @return GoogleAuthResult containing the user and generated JWT
+     */
+    @Transactional
+    public GoogleAuthResult loginWithGoogle(String idTokenString) {
+        if (googleClientId == null || googleClientId.isBlank()) {
+            throw new ValidationException("Google client ID is not configured");
+        }
+
+        GoogleIdToken idToken;
+        try {
+            GoogleIdTokenVerifier verifier = new GoogleIdTokenVerifier.Builder(googleTransport, gsonFactory)
+                    .setAudience(Collections.singletonList(googleClientId))
+                    .build();
+
+            idToken = verifier.verify(idTokenString);
+        } catch (GeneralSecurityException | java.io.IOException e) {
+            throw new ValidationException("Could not verify Google ID token");
+        }
+
+        if (idToken == null || idToken.getPayload() == null) {
+            throw new ValidationException("Invalid Google ID token");
+        }
+
+        GoogleIdToken.Payload payload = idToken.getPayload();
+        String email = payload.getEmail();
+        Boolean emailVerified = payload.getEmailVerified();
+        String fullName = (String) payload.get("name");
+
+        if (email == null || email.isBlank()) {
+            throw new ValidationException("Google account is missing an email address");
+        }
+        if (emailVerified == null || !emailVerified) {
+            throw new ValidationException("Google email is not verified");
+        }
+
+        User user = userRepository.findByEmailNormalizedWithRoles(email.toLowerCase()).orElse(null);
+
+        if (user == null) {
+            // Create new user with default ROLE_USER
+            Role userRole = roleRepository.findByName("ROLE_USER")
+                    .orElseThrow(() -> new ResourceNotFoundException("Default role not found"));
+
+            user = new User();
+            user.setEmail(email);
+            user.setFullName(fullName != null && !fullName.isBlank() ? fullName : email);
+            user.setPasswordHash(passwordEncoder.encode(UUID.randomUUID().toString()));
+            user.setIsActive(true);
+            user.setValidatedUser(true);
+            user.setTrustedValidator(false);
+            user.addRole(userRole);
+        } else {
+            // Update basic profile data if missing
+            if (user.getFullName() == null || user.getFullName().isBlank()) {
+                user.setFullName(fullName != null && !fullName.isBlank() ? fullName : email);
+            }
+            user.resetFailedAttempts();
+            user.setIsActive(true);
+        }
+
+        User savedUser = userRepository.save(user);
+
+        // Generate JWT and return result
+        UserDetails userDetails = userDetailsService.loadUserByUsername(savedUser.getEmail());
+        String accessToken = jwtService.generateAccessToken(userDetails);
+
+        return new GoogleAuthResult(UserDTO.fromUser(savedUser), accessToken);
     }
 }

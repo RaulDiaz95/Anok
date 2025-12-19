@@ -43,6 +43,10 @@ cors:
   allowed-headers: "*"
   allow-credentials: true
 
+# Google OAuth
+google:
+  client-id: ${GOOGLE_CLIENT_ID:}
+
 # JWT Security Configuration
 security:
   jwt:
