@@ -23,6 +23,7 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -59,6 +60,15 @@ public class AuthenticationService {
 
     private final NetHttpTransport googleTransport = new NetHttpTransport();
     private final GsonFactory gsonFactory = GsonFactory.getDefaultInstance();
+
+    @jakarta.annotation.PostConstruct
+    void logGoogleClientId() {
+        if (googleClientId == null || googleClientId.isBlank()) {
+            logger.warn("Google client ID is not configured. Google login will fail until GOOGLE_CLIENT_ID is set.");
+        } else {
+            logger.info("Google client ID configured");
+        }
+    }
 
     /**
      * Register a new user.
