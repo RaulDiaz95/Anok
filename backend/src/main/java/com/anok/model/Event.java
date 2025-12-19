@@ -70,6 +70,9 @@ public class Event {
     @Column(name = "venue_country", nullable = false, length = 255)
     private String venueCountry = "";
 
+    @Column(name = "venue_city", nullable = false, length = 255)
+    private String venueCity = "";
+
     @Column(name = "about", nullable = false, columnDefinition = "TEXT")
     private String about = "";
 
@@ -252,6 +255,14 @@ public class Event {
 
     public void setVenueCountry(String venueCountry) {
         this.venueCountry = venueCountry;
+    }
+
+    public String getVenueCity() {
+        return venueCity;
+    }
+
+    public void setVenueCity(String venueCity) {
+        this.venueCity = venueCity;
     }
 
     public Integer getCapacity() {

@@ -4,6 +4,7 @@ import com.anok.dto.EventRequest;
 import com.anok.dto.EventResponse;
 import com.anok.dto.PageResponse;
 import com.anok.exception.ResourceNotFoundException;
+import com.anok.exception.ValidationException;
 import com.anok.model.Event;
 import com.anok.model.EventGenre;
 import com.anok.model.EventPerformer;
@@ -11,6 +12,7 @@ import com.anok.model.EventStatus;
 import com.anok.model.User;
 import com.anok.repository.EventRepository;
 import com.anok.repository.UserRepository;
+import com.anok.validation.GenreCatalog;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
@@ -154,6 +156,7 @@ public class EventService {
     }
 
     private void applyEventRequest(Event event, EventRequest request, boolean isCreate) {
+        validateRequest(request);
         LocalTime computedEndTime = request.getEndTime();
         if (computedEndTime == null && request.getStartTime() != null && request.getEventLengthHours() != null) {
             computedEndTime = request.getStartTime().plusHours(request.getEventLengthHours());
@@ -180,6 +183,7 @@ public class EventService {
         event.setVenueZipCode(request.getVenueZipCode().trim());
         event.setVenueState(request.getVenueState().trim());
         event.setVenueCountry(request.getVenueCountry().trim());
+        event.setVenueCity(request.getVenueCity().trim());
         event.setCapacity(request.getCapacity());
         event.setAllAges(request.getAllAges());
         event.setAlcohol(request.getAlcohol());
@@ -207,6 +211,7 @@ public class EventService {
         response.setVenueZipCode(event.getVenueZipCode());
         response.setVenueState(event.getVenueState());
         response.setVenueCountry(event.getVenueCountry());
+        response.setVenueCity(event.getVenueCity());
         response.setAbout(event.getAbout());
         response.setCapacity(event.getCapacity());
         response.setAllAges(event.getAllAges());
@@ -242,6 +247,47 @@ public class EventService {
         return response;
     }
 
+    private void validateRequest(EventRequest request) {
+        if (request == null) {
+            throw new ValidationException("Invalid event request");
+        }
+        if (request.getTitle() != null && request.getTitle().trim().isEmpty()) {
+            throw new ValidationException("title", "Title cannot be empty");
+        }
+        if (request.getAbout() != null && request.getAbout().trim().isEmpty()) {
+            throw new ValidationException("about", "Description cannot be empty");
+        }
+        if (request.getEventDate() != null && request.getEventDate().isBefore(LocalDate.now())) {
+            throw new ValidationException("Event date cannot be in the past");
+        }
+        if (request.getEventLengthHours() != null && request.getEventLengthHours() < 1) {
+            throw new ValidationException("Event must last at least 1 hour");
+        }
+        if (request.getEventDate() != null && request.getStartTime() != null) {
+            if (request.getEventDate().isEqual(LocalDate.now()) && request.getStartTime().isBefore(LocalTime.now())) {
+                throw new ValidationException("startTime", "Start time cannot be earlier than the current time");
+            }
+            LocalTime computedEnd = request.getEndTime();
+            if (computedEnd == null && request.getEventLengthHours() != null) {
+                computedEnd = request.getStartTime().plusHours(request.getEventLengthHours());
+            }
+            if (computedEnd != null && computedEnd.isBefore(request.getStartTime())) {
+                throw new ValidationException("Invalid time range");
+            }
+        }
+        if (request.getVenueZipCode() != null && !request.getVenueZipCode().trim().matches("\\d{5}")) {
+            throw new ValidationException("venueZipCode", "Postal code must be exactly 5 digits");
+        }
+        if (request.getGenres() == null || request.getGenres().isEmpty()) {
+            throw new ValidationException("genres", "At least one genre is required");
+        }
+        for (String genre : request.getGenres()) {
+            if (!GenreCatalog.isAllowed(genre)) {
+                throw new ValidationException("genres", "Invalid genre: " + genre);
+            }
+        }
+    }
+
     private void applyGenres(Event event, List<String> genres) {
         event.getGenres().clear();
         if (genres == null || genres.isEmpty()) {
@@ -255,6 +301,9 @@ public class EventService {
             }
             label = label.trim();
             if (label.isEmpty()) {
+                continue;
+            }
+            if (!GenreCatalog.isAllowed(label)) {
                 continue;
             }
             EventGenre genre = new EventGenre();

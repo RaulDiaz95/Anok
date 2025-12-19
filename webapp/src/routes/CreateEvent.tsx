@@ -15,24 +15,7 @@ import { useAuth } from "../contexts/AuthContext";
 import Navbar from "../components/NavBar";
 import { PerformerInput } from "../types/event";
 import { FlyerFrame } from "../components/FlyerFrame";
-
-const GENRE_OPTIONS = [
-  "Rock",
-  "Pop",
-  "Hip-Hop/Rap",
-  "Classical",
-  "Jazz",
-  "Electronic",
-  "Country",
-  "Blues",
-  "Reggae",
-  "Folk",
-  "R&B/Soul",
-  "Gospel",
-  "Funk",
-  "World Music",
-  "Opera",
-];
+import { ALLOWED_GENRES } from "../constants/genres";
 
 export default function CreateEvent() {
   const navigate = useNavigate();
@@ -43,7 +26,7 @@ export default function CreateEvent() {
   const [title, setTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [startTime, setStartTime] = useState("");
-  const [eventLengthHours, setEventLengthHours] = useState<number>(0);
+  const [eventLengthHours, setEventLengthHours] = useState<number>(1);
   const [endTime, setEndTime] = useState("");
   const [endTimeEdited, setEndTimeEdited] = useState(false);
   const [flyerPreview, setFlyerPreview] = useState("");
@@ -54,6 +37,7 @@ export default function CreateEvent() {
   const [venueZipCode, setVenueZipCode] = useState("");
   const [venueState, setVenueState] = useState("");
   const [venueCountry, setVenueCountry] = useState("");
+  const [venueCity, setVenueCity] = useState("");
   const [about, setAbout] = useState("");
   const [capacity, setCapacity] = useState(0);
   const [allAges, setAllAges] = useState(true);
@@ -61,14 +45,16 @@ export default function CreateEvent() {
   const [performers, setPerformers] = useState<PerformerInput[]>([
     { performerName: "", genre1: "", genre2: "", genre3: "", performerLink: "" },
   ]);
-  const [genreInput, setGenreInput] = useState("");
   const [genres, setGenres] = useState<string[]>([]);
   const [genreError, setGenreError] = useState("");
   const [error, setError] = useState("");
+  const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
   const [isLoadingEvent, setIsLoadingEvent] = useState(false);
+  const [genreQuery, setGenreQuery] = useState("");
+  const [hasSubmitted, setHasSubmitted] = useState(false);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -97,6 +83,7 @@ export default function CreateEvent() {
         setVenueZipCode(data.venueZipCode || "");
         setVenueState(data.venueState || "");
         setVenueCountry(data.venueCountry || "");
+        setVenueCity(data.venueCity || "");
         setAbout(data.about || "");
         setCapacity(data.capacity ?? 0);
         setAllAges(Boolean(data.allAges));
@@ -123,37 +110,197 @@ export default function CreateEvent() {
   }, [eventId, isAuthenticated, isEdit]);
 
   useEffect(() => {
-    if (startTime && eventLengthHours > 0 && !endTimeEdited) {
+    if (startTime && eventLengthHours >= 1 && !endTimeEdited) {
       const computed = computeEndTime(startTime, eventLengthHours);
       setEndTime(computed);
     }
   }, [startTime, eventLengthHours, endTimeEdited]);
 
+  const validationErrors = useMemo(() => {
+    const errors: Record<string, string> = {};
+    const hints: string[] = [];
+    const trimmedTitle = title.trim();
+    const trimmedAbout = about.trim();
+    const trimmedVenueName = venueName.trim();
+    const trimmedVenueAddress = venueAddress.trim();
+    const trimmedCity = venueCity.trim();
+    const trimmedState = venueState.trim();
+    const trimmedCountry = venueCountry.trim();
+    if (!trimmedTitle) {
+      errors.title = "Title is required";
+      hints.push("Title (3-100 chars)");
+    } else if (trimmedTitle.length < 3 || trimmedTitle.length > 100) {
+      errors.title = "Title must be 3-100 characters";
+      hints.push("Title must be 3-100 characters");
+    }
+    if (!trimmedAbout) {
+      errors.about = "Description is required";
+      hints.push("Description (10-2000 chars)");
+    } else if (trimmedAbout.length < 10 || trimmedAbout.length > 2000) {
+      errors.about = "Description must be 10-2000 characters";
+      hints.push("Description must be 10-2000 characters");
+    }
+    if (!eventDate) {
+      errors.eventDate = "Event date is required";
+      hints.push("Event date");
+    } else {
+      const today = new Date();
+      const dateValue = new Date(eventDate + "T00:00:00");
+      if (dateValue < new Date(today.getFullYear(), today.getMonth(), today.getDate())) {
+        errors.eventDate = "Event date cannot be in the past";
+        hints.push("Event date cannot be in the past");
+      }
+    }
+    if (!startTime) {
+      errors.startTime = "Start time is required";
+      hints.push("Start time");
+    } else if (eventDate) {
+      const dateValue = new Date(eventDate + "T00:00:00");
+      const today = new Date();
+      if (
+        dateValue.getFullYear() === today.getFullYear() &&
+        dateValue.getMonth() === today.getMonth() &&
+        dateValue.getDate() === today.getDate()
+      ) {
+        const [h, m] = startTime.split(":").map((v) => parseInt(v || "0", 10));
+        const nowMinutes = today.getHours() * 60 + today.getMinutes();
+        const startMinutes = h * 60 + m;
+        if (startMinutes < nowMinutes) {
+          errors.startTime = "Start time cannot be earlier than current time";
+          hints.push("Start time must be in the future");
+        }
+      }
+    }
+    if (!eventLengthHours || Number.isNaN(eventLengthHours)) {
+      errors.eventLengthHours = "Length is required";
+      hints.push("Event length (>= 1 hour)");
+    } else if (eventLengthHours < 1) {
+      errors.eventLengthHours = "Event must last at least 1 hour";
+      hints.push("Event must last at least 1 hour");
+    }
+    if (startTime) {
+      const [sh, sm] = startTime.split(":").map((v) => parseInt(v || "0", 10));
+      const startMinutes = sh * 60 + sm;
+      let endMinutes = null as number | null;
+      if (endTime) {
+        const [eh, em] = endTime.split(":").map((v) => parseInt(v || "0", 10));
+        endMinutes = eh * 60 + em;
+      } else if (eventLengthHours >= 1) {
+        endMinutes = startMinutes + eventLengthHours * 60;
+      }
+      if (endMinutes !== null && endMinutes < startMinutes) {
+        errors.endTime = "Invalid time range";
+        hints.push("End time must be after start");
+      }
+    }
+    if (!trimmedVenueName) {
+      errors.venueName = "Venue name is required";
+      hints.push("Venue name (3-150 chars)");
+    } else if (trimmedVenueName.length < 3 || trimmedVenueName.length > 150) {
+      errors.venueName = "Venue name must be 3-150 characters";
+      hints.push("Venue name must be 3-150 characters");
+    }
+    if (!trimmedVenueAddress) {
+      errors.venueAddress = "Address is required";
+      hints.push("Address (5-200 chars)");
+    } else if (trimmedVenueAddress.length < 5 || trimmedVenueAddress.length > 200) {
+      errors.venueAddress = "Address must be 5-200 characters";
+      hints.push("Address must be 5-200 characters");
+    }
+    if (!venueZipCode) {
+      errors.venueZipCode = "Postal code is required";
+      hints.push("Postal code (5 digits)");
+    } else if (!/^[0-9]{5}$/.test(venueZipCode)) {
+      errors.venueZipCode = "Postal code must be exactly 5 digits";
+      hints.push("Postal code must be 5 digits");
+    }
+    if (!trimmedCity) {
+      errors.venueCity = "City is required";
+      hints.push("City");
+    }
+    if (!trimmedState) {
+      errors.venueState = "State is required";
+      hints.push("State");
+    }
+    if (!trimmedCountry) {
+      errors.venueCountry = "Country is required";
+      hints.push("Country");
+    }
+    if (!genres.length) {
+      errors.genres = "Select at least one genre";
+      hints.push("At least 1 genre");
+    }
+    if (!performers.some((p) => p.performerName.trim())) {
+      errors.performers = "Add at least one performer";
+      hints.push("Performer name");
+    }
+    return { errors, hints };
+  }, [
+    title,
+    about,
+    eventDate,
+    startTime,
+    eventLengthHours,
+    endTime,
+    venueName,
+    venueAddress,
+    venueZipCode,
+    venueCity,
+    venueState,
+    venueCountry,
+    genres,
+    performers,
+  ]);
+
+  useEffect(() => {
+    setFieldErrors(validationErrors.errors);
+  }, [validationErrors]);
+
   const isFormReady = useMemo(
-    () =>
-      title.trim() &&
-      eventDate &&
-      startTime &&
-      eventLengthHours > 0 &&
-      venueName.trim() &&
-      venueAddress.trim() &&
-      venueZipCode.trim() &&
-      venueState.trim() &&
-      venueCountry.trim() &&
-      performers.some((p) => p.performerName.trim()),
-    [
-      title,
-      eventDate,
-      startTime,
-      eventLengthHours,
-      venueName,
-      venueAddress,
-      venueZipCode,
-      venueState,
-      venueCountry,
-      performers,
-    ]
+    () => Object.keys(validationErrors.errors).length === 0 && !isSubmitting && !isUploadingFlyer,
+    [validationErrors, isSubmitting, isUploadingFlyer]
   );
+
+  const handleAddGenre = () => {
+    const exact = ALLOWED_GENRES.find(
+      (g) => g.toLowerCase() === genreQuery.trim().toLowerCase()
+    );
+    if (!exact) {
+      setGenreError("Select a genre from the list");
+      return;
+    }
+    if (genres.some((g) => g.toLowerCase() === exact.toLowerCase())) {
+      setGenreError("Genre already selected");
+      return;
+    }
+    if (genres.length >= 50) {
+      setGenreError("You can only add up to 50 genres.");
+      return;
+    }
+    setGenres([...genres, exact]);
+    setGenreQuery("");
+    setGenreError("");
+  };
+
+  const handleGenreQueryChange = (value: string) => {
+    setGenreQuery(value);
+    setGenreError("");
+  };
+
+  const handlePostalChange = (value: string) => {
+    const digits = value.replace(/\D/g, "").slice(0, 5);
+    setVenueZipCode(digits);
+  };
+
+  const handleEventLengthChange = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    setEventLengthHours(digits ? Math.max(1, parseInt(digits, 10)) : 0);
+  };
+
+  const handleCapacityChange = (value: string) => {
+    const digits = value.replace(/\D/g, "");
+    setCapacity(digits ? parseInt(digits, 10) : 0);
+  };
 
   const handleCancel = () => {
     navigate(isEdit ? "/events/mine" : "/events");
@@ -209,29 +356,6 @@ export default function CreateEvent() {
     setPerformers(performers.filter((_, i) => i !== index));
   };
 
-  const addGenre = () => {
-    const value = genreInput.trim();
-    if (!value) {
-      setGenreError("Genre cannot be empty.");
-      return;
-    }
-    if (value.length > 25) {
-      setGenreError("Genre must be 25 characters or fewer.");
-      return;
-    }
-    if (genres.length >= 50) {
-      setGenreError("You can only add up to 50 genres.");
-      return;
-    }
-    if (genres.some((genre) => genre.toLowerCase() === value.toLowerCase())) {
-      setGenreError("Genre already added.");
-      return;
-    }
-    setGenres([...genres, value]);
-    setGenreInput("");
-    setGenreError("");
-  };
-
   const removeGenre = (index: number) => {
     setGenres(genres.filter((_, idx) => idx !== index));
   };
@@ -240,9 +364,14 @@ export default function CreateEvent() {
     e.preventDefault();
     setError("");
     setSuccess("");
+    setHasSubmitted(true);
+    setFieldErrors(validationErrors.errors);
     setIsSubmitting(true);
 
     try {
+      if (Object.keys(validationErrors.errors).length) {
+        throw new Error("Please fix the highlighted validation errors.");
+      }
       const validPerformers = performers
         .filter((p) => p.performerName.trim())
         .map((p) => ({
@@ -259,17 +388,18 @@ export default function CreateEvent() {
 
         const payload = {
           title: title.trim(),
-          flyerUrl,
-          eventDate,
-          startTime,
-          eventLengthHours: Number(eventLengthHours),
-          endTime: endTime || null,
-          isLive: false,
-          venueName: venueName.trim(),
-          venueAddress: venueAddress.trim(),
+        flyerUrl: flyerUrl || null,
+        eventDate,
+        startTime,
+        eventLengthHours: Number(eventLengthHours),
+        endTime: endTime || null,
+        isLive: false,
+        venueName: venueName.trim(),
+        venueAddress: venueAddress.trim(),
         venueZipCode: venueZipCode.trim(),
         venueState: venueState.trim(),
         venueCountry: venueCountry.trim(),
+        venueCity: venueCity.trim(),
         about: about.trim(),
         capacity,
         allAges,
@@ -385,13 +515,13 @@ export default function CreateEvent() {
                           <ImageIcon className="text-[#b11226]" size={36} />
                         </div>
                         <p className="text-white font-semibold">Drag & Drop Flyer</p>
-                        <p className="text-sm text-gray-500">Image files only. Or click to browse.</p>
+                        <p className="text-sm text-gray-500">Optional — image files only. Or click to browse.</p>
                       </div>
                     }
                   />
                   <label className="inline-flex items-center gap-2 px-4 py-2 bg-[#b11226] hover:bg-[#d31a33] text-white rounded-lg cursor-pointer transition">
                     <Upload size={16} />
-                    {isUploadingFlyer ? "Uploading..." : "Upload Flyer"}
+                    {isUploadingFlyer ? "Uploading..." : "Upload Flyer (optional)"}
                     <input
                       type="file"
                       accept="image/*"
@@ -430,73 +560,92 @@ export default function CreateEvent() {
 
                     <div className="grid md:grid-cols-2 gap-4">
                       <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-300">
-                          Event Title
-                        </label>
-                        <input
-                          type="text"
-                          value={title}
-                          onChange={(e) => setTitle(e.target.value)}
-                          required
-                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                          placeholder="Night of Sounds"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-300">
-                          Event Date
-                        </label>
-                        <input
-                          type="date"
-                          value={eventDate}
-                          onChange={(e) => setEventDate(e.target.value)}
-                          required
-                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                        />
-                      </div>
-                    </div>
+                    <label className="block text-sm font-medium text-gray-300">
+                      Event Title
+                    </label>
+                    <input
+                      type="text"
+                      value={title}
+                      onChange={(e) => setTitle(e.target.value)}
+                      required
+                      aria-invalid={Boolean(fieldErrors.title)}
+                      className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                      placeholder="Night of Sounds"
+                    />
+                    {hasSubmitted && fieldErrors.title && (
+                      <p className="text-xs text-red-400 mt-1">{fieldErrors.title}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-300">
+                      Event Date
+                    </label>
+                    <input
+                      type="date"
+                      value={eventDate}
+                      onChange={(e) => setEventDate(e.target.value)}
+                      required
+                      aria-invalid={Boolean(fieldErrors.eventDate)}
+                      className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                    />
+                    {hasSubmitted && fieldErrors.eventDate && (
+                      <p className="text-xs text-red-400 mt-1">{fieldErrors.eventDate}</p>
+                    )}
+                  </div>
+                </div>
 
-                    <div className="grid md:grid-cols-3 gap-4 mt-4">
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-300">
-                          Start Time
-                        </label>
-                        <input
-                          type="time"
-                          value={startTime}
-                          onChange={(e) => setStartTime(e.target.value)}
-                          required
-                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-300">
-                          Event Length (hours)
-                        </label>
-                        <input
-                          type="number"
-                          min={0}
-                          value={eventLengthHours}
-                          onChange={(e) => setEventLengthHours(parseInt(e.target.value, 10) || 0)}
-                          required
-                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                        />
-                      </div>
-                      <div className="space-y-2">
-                        <label className="block text-sm font-medium text-gray-300">
-                          End Time (optional)
-                        </label>
+                <div className="grid md:grid-cols-3 gap-4 mt-4">
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-300">
+                      Start Time
+                    </label>
+                    <input
+                      type="time"
+                      value={startTime}
+                      onChange={(e) => setStartTime(e.target.value)}
+                      required
+                      aria-invalid={Boolean(fieldErrors.startTime)}
+                      className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                    />
+                    {hasSubmitted && fieldErrors.startTime && (
+                      <p className="text-xs text-red-400 mt-1">{fieldErrors.startTime}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-300">
+                      Event Length (hours)
+                    </label>
+                    <input
+                      type="text"
+                      inputMode="numeric"
+                      value={eventLengthHours}
+                      onChange={(e) => handleEventLengthChange(e.target.value)}
+                      required
+                      aria-invalid={Boolean(fieldErrors.eventLengthHours)}
+                      className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                    />
+                    {hasSubmitted && fieldErrors.eventLengthHours && (
+                      <p className="text-xs text-red-400 mt-1">{fieldErrors.eventLengthHours}</p>
+                    )}
+                  </div>
+                  <div className="space-y-2">
+                    <label className="block text-sm font-medium text-gray-300">
+                      End Time (optional)
+                    </label>
                         <input
                           type="time"
                           value={endTime}
-                          onChange={(e) => {
-                            setEndTime(e.target.value);
-                            setEndTimeEdited(e.target.value !== "");
-                          }}
-                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                        />
-                      </div>
-                    </div>
+                      onChange={(e) => {
+                        setEndTime(e.target.value);
+                        setEndTimeEdited(e.target.value !== "");
+                      }}
+                      className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                    />
+                    {hasSubmitted && fieldErrors.endTime && (
+                      <p className="text-xs text-red-400 mt-1">{fieldErrors.endTime}</p>
+                    )}
+                  </div>
+                </div>
                   </section>
 
                   <section className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
@@ -562,7 +711,7 @@ export default function CreateEvent() {
                               <option value="" className="bg-[#0f0f1a] text-gray-400">
                                 Select genre
                               </option>
-                              {GENRE_OPTIONS.map((option) => (
+                              {ALLOWED_GENRES.map((option) => (
                                 <option key={option} value={option} className="bg-[#0f0f1a] text-white">
                                   {option}
                                 </option>
@@ -585,6 +734,9 @@ export default function CreateEvent() {
                           </div>
                         </div>
                       ))}
+                      {hasSubmitted && fieldErrors.performers && (
+                        <p className="text-xs text-red-400">{fieldErrors.performers}</p>
+                      )}
                     </div>
                   </section>
 
@@ -600,19 +752,23 @@ export default function CreateEvent() {
                           value={venueName}
                           onChange={(e) => setVenueName(e.target.value)}
                           required
+                          aria-invalid={Boolean(fieldErrors.venueName)}
                           className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
                           placeholder="Main Hall"
                         />
+                        {hasSubmitted && fieldErrors.venueName && (
+                          <p className="text-xs text-red-400 mt-1">{fieldErrors.venueName}</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
                           Capacity
                         </label>
                         <input
-                          type="number"
-                          min={0}
+                          type="text"
+                          inputMode="numeric"
                           value={capacity}
-                          onChange={(e) => setCapacity(parseInt(e.target.value, 10) || 0)}
+                          onChange={(e) => handleCapacityChange(e.target.value)}
                           required
                           className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
                         />
@@ -629,9 +785,13 @@ export default function CreateEvent() {
                           value={venueAddress}
                           onChange={(e) => setVenueAddress(e.target.value)}
                           required
+                          aria-invalid={Boolean(fieldErrors.venueAddress)}
                           className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
                           placeholder="123 Main St"
                         />
+                        {hasSubmitted && fieldErrors.venueAddress && (
+                          <p className="text-xs text-red-400 mt-1">{fieldErrors.venueAddress}</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -640,15 +800,37 @@ export default function CreateEvent() {
                         <input
                           type="text"
                           value={venueZipCode}
-                          onChange={(e) => setVenueZipCode(e.target.value)}
+                          onChange={(e) => handlePostalChange(e.target.value)}
                           required
+                          inputMode="numeric"
+                          aria-invalid={Boolean(fieldErrors.venueZipCode)}
                           className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
                           placeholder="90210"
                         />
+                        {hasSubmitted && fieldErrors.venueZipCode && (
+                          <p className="text-xs text-red-400 mt-1">{fieldErrors.venueZipCode}</p>
+                        )}
                       </div>
                     </div>
 
                     <div className="grid md:grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-sm font-medium text-gray-300 mb-2">
+                          City
+                        </label>
+                        <input
+                          type="text"
+                          value={venueCity}
+                          onChange={(e) => setVenueCity(e.target.value)}
+                          required
+                          aria-invalid={Boolean(fieldErrors.venueCity)}
+                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                          placeholder="CDMX"
+                        />
+                        {hasSubmitted && fieldErrors.venueCity && (
+                          <p className="text-xs text-red-400 mt-1">{fieldErrors.venueCity}</p>
+                        )}
+                      </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
                           State / Province
@@ -658,9 +840,13 @@ export default function CreateEvent() {
                           value={venueState}
                           onChange={(e) => setVenueState(e.target.value)}
                           required
+                          aria-invalid={Boolean(fieldErrors.venueState)}
                           className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
                           placeholder="California"
                         />
+                        {hasSubmitted && fieldErrors.venueState && (
+                          <p className="text-xs text-red-400 mt-1">{fieldErrors.venueState}</p>
+                        )}
                       </div>
                       <div>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
@@ -671,9 +857,13 @@ export default function CreateEvent() {
                           value={venueCountry}
                           onChange={(e) => setVenueCountry(e.target.value)}
                           required
+                          aria-invalid={Boolean(fieldErrors.venueCountry)}
                           className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
                           placeholder="United States"
                         />
+                        {hasSubmitted && fieldErrors.venueCountry && (
+                          <p className="text-xs text-red-400 mt-1">{fieldErrors.venueCountry}</p>
+                        )}
                       </div>
                     </div>
                   </section>
@@ -685,9 +875,13 @@ export default function CreateEvent() {
                       onChange={(e) => setAbout(e.target.value)}
                       rows={4}
                       required
+                      aria-invalid={Boolean(fieldErrors.about)}
                       className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
                       placeholder="Tell attendees about the event..."
                     />
+                    {hasSubmitted && fieldErrors.about && (
+                      <p className="text-xs text-red-400 mt-1">{fieldErrors.about}</p>
+                    )}
 
                     <div className="space-y-4">
                       <div>
@@ -697,53 +891,58 @@ export default function CreateEvent() {
                             (up to 50 tags, 25 chars each)
                           </span>
                         </label>
-                        <div className="flex gap-2">
-                          <input
-                            type="text"
-                            maxLength={25}
-                            value={genreInput}
-                            onChange={(e) => setGenreInput(e.target.value)}
-                            onKeyDown={(e) => {
-                              if (e.key === "Enter") {
-                                e.preventDefault();
-                                addGenre();
-                              }
-                            }}
-                            className="flex-1 px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                            placeholder="e.g. Rock, Indie, Jazz"
-                          />
-                          <button
-                            type="button"
-                            onClick={addGenre}
-                            className="px-4 py-3 bg-[#b11226] hover:bg-[#d31a33] text-white rounded-lg flex items-center gap-2 transition"
-                          >
-                            <Plus size={16} />
-                            Add
-                          </button>
-                        </div>
-                        {genreError && (
-                          <p className="text-sm text-red-400 mt-2">{genreError}</p>
-                        )}
-                        {genres.length > 0 && (
-                          <div className="flex flex-wrap gap-2 mt-3">
-                            {genres.map((genre, index) => (
-                              <span
-                                key={`${genre}-${index}`}
-                                className="flex items-center gap-1 px-3 py-1 rounded-full bg-[#b11226]/10 border border-[#b11226]/30 text-sm text-white"
-                              >
-                                {genre}
-                                <button
-                                  type="button"
-                                  onClick={() => removeGenre(index)}
-                                  className="text-gray-400 hover:text-white transition"
-                                  aria-label={`Remove ${genre}`}
-                                >
-                                  <X size={14} />
-                                </button>
-                              </span>
-                            ))}
+                        <div className="space-y-3">
+                          <div className="flex gap-2 flex-col sm:flex-row">
+                            <div className="flex-1">
+                              <input
+                                type="text"
+                                value={genreQuery}
+                                onChange={(e) => handleGenreQueryChange(e.target.value)}
+                                onKeyDown={(e) => {
+                                  if (e.key === "Enter") {
+                                    e.preventDefault();
+                                    handleAddGenre();
+                                  }
+                                }}
+                                aria-invalid={Boolean(fieldErrors.genres) || Boolean(genreError)}
+                                className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                                placeholder="Type a genre (must match allowed list)"
+                              />
+                            </div>
+                            <button
+                              type="button"
+                              onClick={handleAddGenre}
+                              className="px-4 py-3 bg-[#b11226] hover:bg-[#d31a33] text-white rounded-lg flex items-center gap-2 transition sm:w-auto w-full justify-center"
+                            >
+                              <Plus size={16} />
+                              Add
+                            </button>
                           </div>
-                        )}
+                          {genreError && <p className="text-sm text-red-400">{genreError}</p>}
+                          {hasSubmitted && fieldErrors.genres && !genreError && (
+                            <p className="text-sm text-red-400">{fieldErrors.genres}</p>
+                          )}
+                          {genres.length > 0 && (
+                            <div className="flex flex-wrap gap-2 mt-1">
+                              {genres.map((genre, index) => (
+                                <span
+                                  key={`${genre}-${index}`}
+                                  className="flex items-center gap-1 px-3 py-1 rounded-full bg-[#b11226]/10 border border-[#b11226]/30 text-sm text-white"
+                                >
+                                  {genre}
+                                  <button
+                                    type="button"
+                                    onClick={() => removeGenre(index)}
+                                    className="text-gray-400 hover:text-white transition"
+                                    aria-label={`Remove ${genre}`}
+                                  >
+                                    <X size={14} />
+                                  </button>
+                                </span>
+                              ))}
+                            </div>
+                          )}
+                        </div>
                       </div>
 
                       <div className="flex flex-wrap items-center gap-4">
@@ -772,6 +971,30 @@ export default function CreateEvent() {
               </div>
 
               <div className="flex flex-col md:flex-row gap-4 md:justify-end pt-2">
+                <div className="relative group">
+                  <button
+                    type="button"
+                    aria-label="Validation summary"
+                    className="flex items-center justify-center h-12 w-12 rounded-full border border-white/20 text-white bg-white/5 hover:bg-white/10 transition"
+                  >
+                    ?
+                  </button>
+                  <div className="absolute bottom-full mb-2 right-0 w-72 bg-[#0f0f1a] border border-white/10 rounded-lg shadow-xl p-3 text-sm text-gray-300 opacity-0 group-hover:opacity-100 pointer-events-none group-hover:pointer-events-auto transition-opacity duration-150">
+                    <p className="font-semibold text-white mb-2">Missing info</p>
+                    {validationErrors.hints.length === 0 ? (
+                      <p className="text-green-400">All required fields look good.</p>
+                    ) : (
+                      <ul className="list-disc list-inside space-y-1">
+                        {validationErrors.hints.slice(0, 5).map((hint, idx) => (
+                          <li key={idx}>{hint}</li>
+                        ))}
+                        {validationErrors.hints.length > 5 && (
+                          <li>+{validationErrors.hints.length - 5} more</li>
+                        )}
+                      </ul>
+                    )}
+                  </div>
+                </div>
                 <button
                   type="button"
                   onClick={handleCancel}

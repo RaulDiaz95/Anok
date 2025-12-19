@@ -53,6 +53,7 @@ export default function MyEvents({ embedded = false }: MyEventsProps) {
   const buildAddress = (event: Event) =>
     [
       event.venueAddress,
+      event.venueCity,
       event.venueState,
       event.venueCountry,
       event.venueZipCode,

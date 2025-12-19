@@ -34,6 +34,7 @@ const formatTime = (time?: string | null) => {
 const buildAddress = (event?: Event | null) =>
   [
     event?.venueAddress,
+    event?.venueCity,
     event?.venueState,
     event?.venueCountry,
     event?.venueZipCode,

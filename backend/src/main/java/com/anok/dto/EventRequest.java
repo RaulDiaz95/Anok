@@ -9,22 +9,28 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.anok.validation.AllowedGenres;
+import com.anok.validation.EventTimingValid;
+import com.anok.validation.PostalCode;
+
+@EventTimingValid
 public class EventRequest {
 
     @NotBlank
-    @Size(max = 255)
+    @Size(min = 3, max = 100)
     private String title;
 
     private String flyerUrl;
 
     @NotNull
+    @FutureOrPresent(message = "Event date cannot be in the past")
     private LocalDate eventDate;
 
     @NotNull
     private LocalTime startTime;
 
     @NotNull
-    @Min(0)
+    @Min(value = 1, message = "Event must last at least 1 hour")
     private Integer eventLengthHours;
 
     private LocalTime endTime;
@@ -34,26 +40,31 @@ public class EventRequest {
     private Boolean isLive;
 
     @NotBlank
-    @Size(max = 255)
+    @Size(min = 3, max = 150)
     private String venueName;
 
     @NotBlank
+    @Size(min = 5, max = 200)
     private String venueAddress;
 
     @NotBlank
-    @Size(max = 50)
+    @PostalCode
     private String venueZipCode;
 
     @NotBlank
-    @Size(max = 255)
+    @Size(min = 2, max = 255)
     private String venueState;
 
     @NotBlank
-    @Size(max = 255)
+    @Size(min = 2, max = 255)
     private String venueCountry;
 
     @NotBlank
-    @Size(max = 4000)
+    @Size(max = 255)
+    private String venueCity;
+
+    @NotBlank
+    @Size(min = 10, max = 2000)
     private String about;
 
     @NotNull
@@ -66,7 +77,9 @@ public class EventRequest {
     @NotNull
     private Boolean alcohol;
 
-    @Size(max = 50)
+    @NotNull
+    @Size(min = 1, max = 50)
+    @AllowedGenres
     private List<@NotBlank @Size(max = 25) String> genres = new ArrayList<>();
 
     @NotEmpty
@@ -167,6 +180,14 @@ public class EventRequest {
 
     public void setVenueCountry(String venueCountry) {
         this.venueCountry = venueCountry;
+    }
+
+    public String getVenueCity() {
+        return venueCity;
+    }
+
+    public void setVenueCity(String venueCity) {
+        this.venueCity = venueCity;
     }
 
     public String getAbout() {

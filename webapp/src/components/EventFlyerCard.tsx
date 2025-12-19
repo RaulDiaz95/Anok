@@ -6,6 +6,8 @@ import { Event } from "../types/event";
 
 type Props = {
   event: Event;
+  size?: "small" | "medium" | "large";
+  className?: string;
 };
 
 const formatDateTime = (event: Event) => {
@@ -17,10 +19,21 @@ const formatDateTime = (event: Event) => {
   }
 };
 
-export function EventFlyerCard({ event }: Props) {
+export function EventFlyerCard({ event, size = "medium", className }: Props) {
   const navigate = useNavigate();
   const dateLabel = useMemo(() => formatDateTime(event), [event]);
   const [tilt, setTilt] = useState({ x: 0, y: 0 });
+  const sizeClasses = useMemo(() => {
+    switch (size) {
+      case "small":
+        return "text-sm";
+      case "large":
+        return "text-base";
+      case "medium":
+      default:
+        return "text-sm";
+    }
+  }, [size]);
 
   const handleMouseMove = (e: React.MouseEvent<HTMLButtonElement, MouseEvent>) => {
     const rect = (e.currentTarget as HTMLButtonElement).getBoundingClientRect();
@@ -34,19 +47,17 @@ export function EventFlyerCard({ event }: Props) {
   return (
     <motion.button
       type="button"
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
       whileHover={{ scale: 1.06 }}
       whileTap={{ scale: 0.98 }}
       onMouseMove={handleMouseMove}
       onMouseLeave={handleMouseLeave}
       onClick={() => navigate(`/events/${event.id}`)}
-      className="group relative aspect-[2/3] w-[220px] sm:w-[260px] md:w-[300px] overflow-hidden rounded-xl bg-gradient-to-br from-[#1a1a2e] via-[#101018] to-[#0b0b12] border border-white/5 shadow-lg focus:outline-none focus:ring-2 focus:ring-[#b11226]/60 card-enter glow-outline transform-gpu outline outline-1 outline-red-500"
+      className={`group relative aspect-[2/3] w-full overflow-hidden rounded-xl bg-gradient-to-br from-[#1a1a2e] via-[#101018] to-[#0b0b12] border border-white/5 shadow-lg focus:outline-none focus:ring-2 focus:ring-[#b11226]/60 card-enter glow-outline transform-gpu outline outline-1 outline-red-500 ${sizeClasses} ${className ?? ""}`}
       style={{ rotateX: tilt.y, rotateY: tilt.x, transition: "transform 0.25s ease" }}
     >
       <div className="absolute inset-0">
         {event.flyerUrl ? (
-          <div className="aspect-[2/3] w-[220px] sm:w-[260px] md:w-[300px] rounded-xl overflow-hidden relative">
+          <div className="aspect-[2/3] w-full h-full rounded-xl overflow-hidden relative">
             <img
               src={event.flyerUrl}
               alt={`${event.title} flyer`}
@@ -55,7 +66,7 @@ export function EventFlyerCard({ event }: Props) {
             />
           </div>
         ) : (
-          <div className="aspect-[2/3] w-[220px] sm:w-[260px] md:w-[300px] rounded-xl bg-black/40 border border-white/10 flex items-center justify-center text-sm text-gray-400">
+          <div className="aspect-[2/3] w-full h-full rounded-xl bg-black/40 border border-white/10 flex items-center justify-center text-sm text-gray-400">
             No flyer
           </div>
         )}

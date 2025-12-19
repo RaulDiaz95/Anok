@@ -27,6 +27,7 @@ public class EventResponse {
     private String venueZipCode;
     private String venueState;
     private String venueCountry;
+    private String venueCity;
     private String about;
     private Integer capacity;
     private String ageRestriction;
@@ -148,6 +149,14 @@ public class EventResponse {
 
     public void setVenueCountry(String venueCountry) {
         this.venueCountry = venueCountry;
+    }
+
+    public String getVenueCity() {
+        return venueCity;
+    }
+
+    public void setVenueCity(String venueCity) {
+        this.venueCity = venueCity;
     }
 
     public String getAbout() {

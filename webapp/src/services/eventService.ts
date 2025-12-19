@@ -25,8 +25,7 @@ class EventService {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error || "Failed to create event");
+      throw new Error(await this.extractError(response, "Failed to create event"));
     }
 
     return response.json();
@@ -43,8 +42,7 @@ class EventService {
     });
 
     if (!response.ok) {
-      const error = await response.text();
-      throw new Error(error || "Failed to update event");
+      throw new Error(await this.extractError(response, "Failed to update event"));
     }
 
     return response.json();
@@ -128,6 +126,18 @@ class EventService {
 
     // Step 3: Return permanent S3 URL (standard format)
     return `https://${bucket}.s3.amazonaws.com/${key}`;
+  }
+
+  private async extractError(response: Response, fallback: string): Promise<string> {
+    try {
+      const text = await response.text();
+      if (!text) return fallback;
+      const maybeJson = JSON.parse(text);
+      if (maybeJson?.message) return maybeJson.message;
+      return text;
+    } catch (_e) {
+      return fallback;
+    }
   }
 }
 
