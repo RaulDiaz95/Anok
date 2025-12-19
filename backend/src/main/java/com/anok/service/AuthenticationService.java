@@ -16,6 +16,8 @@ import com.google.api.client.http.javanet.NetHttpTransport;
 import com.google.api.client.json.gson.GsonFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
@@ -23,7 +25,6 @@ import org.springframework.security.core.Authentication;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.security.crypto.password.PasswordEncoder;
-import org.springframework.stereotype.Component;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -36,6 +37,8 @@ import java.util.UUID;
  */
 @Service
 public class AuthenticationService {
+
+    private static final Logger log = LoggerFactory.getLogger(AuthenticationService.class);
 
     @Autowired
     private UserRepository userRepository;
@@ -64,9 +67,9 @@ public class AuthenticationService {
     @jakarta.annotation.PostConstruct
     void logGoogleClientId() {
         if (googleClientId == null || googleClientId.isBlank()) {
-            logger.warn("Google client ID is not configured. Google login will fail until GOOGLE_CLIENT_ID is set.");
+            log.warn("Google client ID is not configured. Google login will fail until GOOGLE_CLIENT_ID is set.");
         } else {
-            logger.info("Google client ID configured");
+            log.info("Google client ID configured");
         }
     }
 
