@@ -4,6 +4,7 @@ import { LayoutDashboard, User, BarChart3, LifeBuoy, Menu } from "lucide-react";
 import { AnokBrand } from "../../components/AnokBrand";
 import { useAuth } from "../../contexts/AuthContext";
 import { ShieldCheck } from "lucide-react";
+import { MapPin } from "lucide-react";
 
 export default function DashboardSidebar() {
   const [open, setOpen] = useState(false);
@@ -18,6 +19,7 @@ export default function DashboardSidebar() {
     ];
     if (user?.roles?.includes("ROLE_SUPERUSER")) {
       items.splice(1, 0, { to: "/dashboard/admin/review-events", label: "Admin Review", icon: ShieldCheck });
+      items.splice(2, 0, { to: "/dashboard/admin/venues", label: "Venue Insights", icon: MapPin });
     }
     return items;
   }, [user]);

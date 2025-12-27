@@ -145,13 +145,21 @@ export default function EventDetail() {
             </div>
 
             <div className="space-y-4">
-              <div className="space-y-2">
-                <p className="text-sm text-gray-400 uppercase tracking-wide">Event</p>
-                <h1 className="text-4xl font-bold">{event.title}</h1>
-                {event.ownerName && (
-                  <p className="text-gray-300 text-sm">Hosted by {event.ownerName}</p>
-                )}
-              </div>
+                <div className="space-y-2">
+                  <p className="text-sm text-gray-400 uppercase tracking-wide">Event</p>
+                  <h1 className="text-4xl font-bold">{event.title}</h1>
+                  {event.ownerName && (
+                    <p className="text-gray-300 text-sm">Hosted by {event.ownerName}</p>
+                  )}
+                  {event.selectedVenueId && (
+                    <a
+                      href={`/venue/${event.selectedVenueId}`}
+                      className="text-sm text-[#f7c0c7] underline hover:text-white transition"
+                    >
+                      View venue
+                    </a>
+                  )}
+                </div>
 
               <div className="grid sm:grid-cols-2 gap-4">
                 <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2">

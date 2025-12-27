@@ -7,6 +7,8 @@ import Events from "./Events";
 import ScrollToTop from "../components/ScrollToTop";
 import AdminReviewEvents from "./AdminReviewEvents";
 import AdminReviewEventDetail from "./AdminReviewEventDetail";
+import VenueInsights from "./admin/VenueInsights";
+import VenuePage from "./venue/VenuePage";
 import UserDashboardLayout from "./dashboard/UserDashboardLayout";
 import MyEvents from "./MyEvents";
 import AccountInformation from "./dashboard/AccountInformation";
@@ -26,6 +28,7 @@ export default function AppRoutes() {
         <Route path="/signup" element={<Signup />} />
         <Route path="/events/new" element={<CreateEvent />} />
         <Route path="/events/:id/edit" element={<CreateEvent />} />
+        <Route path="/venue/:id" element={<VenuePage />} />
         <Route path="/events/mine" element={<Navigate to="/dashboard/events" replace />} />
         <Route path="/dashboard" element={<UserDashboardLayout />}>
           <Route index element={<Navigate to="events" replace />} />
@@ -35,6 +38,7 @@ export default function AppRoutes() {
           <Route path="support" element={<SupportResources />} />
           <Route path="admin/review-events" element={<AdminReviewEvents embedded />} />
           <Route path="admin/review-events/:eventId" element={<AdminReviewEventDetail embedded />} />
+          <Route path="admin/venues" element={<VenueInsights />} />
         </Route>
       </Routes>
     </BrowserRouter>

@@ -1,6 +1,6 @@
-﻿import { useEffect, useMemo, useState } from "react";
+﻿import { useEffect, useMemo, useRef, useState } from "react";
 import { useNavigate, useParams } from "react-router-dom";
-import { motion } from "framer-motion";
+import { AnimatePresence, motion } from "framer-motion";
 import {
   ArrowLeft,
   X,
@@ -11,11 +11,13 @@ import {
   Radio,
 } from "lucide-react";
 import { eventService } from "../services/eventService";
+import { useVenueSearch } from "../hooks/useVenueSearch";
 import { useAuth } from "../contexts/AuthContext";
 import Navbar from "../components/NavBar";
 import { PerformerInput } from "../types/event";
 import { FlyerFrame } from "../components/FlyerFrame";
 import { ALLOWED_GENRES } from "../constants/genres";
+import { VenueSearchResult } from "../services/venueService";
 
 export default function CreateEvent() {
   const navigate = useNavigate();
@@ -38,6 +40,59 @@ export default function CreateEvent() {
   const [venueState, setVenueState] = useState("");
   const [venueCountry, setVenueCountry] = useState("");
   const [venueCity, setVenueCity] = useState("");
+  const [selectedVenueId, setSelectedVenueId] = useState<string | null>(null);
+  const [isNewVenue, setIsNewVenue] = useState(true);
+  const [venueSearchOpen, setVenueSearchOpen] = useState(false);
+  const venueSearchBoxRef = useRef<HTMLDivElement | null>(null);
+  const [venueNameInput, setVenueNameInput] = useState("");
+  const [activeVenueIndex, setActiveVenueIndex] = useState<number>(-1);
+  const {
+    query: venueSearchQuery,
+    setQuery: setVenueSearchQuery,
+    results: venueResults,
+    isLoading: isSearchingVenues,
+    error: venueSearchError,
+  } = useVenueSearch("");
+  const rankedVenueResults = useMemo(() => {
+    const query = venueSearchQuery.trim().toLowerCase();
+    const score = (v: VenueSearchResult) => {
+      let s = 0;
+      const usage = v.usageCount ?? 0;
+      s += usage * 4;
+      if (v.verified) s += 20;
+      if (query) {
+        const nameLower = v.name.toLowerCase();
+        if (nameLower === query) s += 40;
+        else if (nameLower.startsWith(query)) s += 20;
+        else if (nameLower.includes(query)) s += 10;
+        if (v.city.toLowerCase().includes(query) || v.state.toLowerCase().includes(query)) s += 5;
+      }
+      return s;
+    };
+    return [...venueResults].sort((a, b) => score(b) - score(a));
+  }, [venueResults, venueSearchQuery]);
+
+  const limitedVenueResults = useMemo(() => rankedVenueResults.slice(0, 2), [rankedVenueResults]);
+
+  useEffect(() => {
+    setActiveVenueIndex(-1);
+  }, [limitedVenueResults.length, venueSearchQuery]);
+
+  const selectVenue = (venue: VenueSearchResult) => {
+    setSelectedVenueId(venue.id);
+    setIsNewVenue(false);
+    setVenueSearchOpen(false);
+    setVenueNameInput(venue.name);
+    setVenueName(venue.name);
+    setVenueAddress(venue.address || "");
+    setVenueZipCode(venue.postalCode || "");
+    setVenueCity(venue.city);
+    setVenueState(venue.state);
+    setVenueCountry(venue.country);
+    setCapacity(typeof venue.capacity === "number" ? venue.capacity : 0);
+    setActiveVenueIndex(-1);
+    setVenueSearchQuery(venue.name);
+  };
   const [about, setAbout] = useState("");
   const [capacity, setCapacity] = useState(0);
   const [allAges, setAllAges] = useState(true);
@@ -63,6 +118,44 @@ export default function CreateEvent() {
   }, [isAuthenticated, isLoading, navigate]);
 
   useEffect(() => {
+    const handleClickOutside = (e: MouseEvent) => {
+      if (venueSearchBoxRef.current && !venueSearchBoxRef.current.contains(e.target as Node)) {
+        setVenueSearchOpen(false);
+      }
+    };
+    const handleEsc = (e: KeyboardEvent) => {
+      if (e.key === "Escape") {
+        setVenueSearchOpen(false);
+        setActiveVenueIndex(-1);
+      }
+      if (venueSearchOpen) {
+        if (e.key === "ArrowDown") {
+          e.preventDefault();
+          setActiveVenueIndex((prev) => {
+            const max = limitedVenueResults.length - 1;
+            return max < 0 ? -1 : Math.min(max, prev + 1);
+          });
+        } else if (e.key === "ArrowUp") {
+          e.preventDefault();
+          setActiveVenueIndex((prev) => Math.max(-1, prev - 1));
+        } else if (e.key === "Enter" && activeVenueIndex >= 0) {
+          e.preventDefault();
+          const venue = limitedVenueResults[activeVenueIndex];
+          if (venue) {
+            selectVenue(venue);
+          }
+        }
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    document.addEventListener("keydown", handleEsc);
+    return () => {
+      document.removeEventListener("mousedown", handleClickOutside);
+      document.removeEventListener("keydown", handleEsc);
+    };
+  }, []);
+
+  useEffect(() => {
     if (!isEdit || !eventId || !isAuthenticated) return;
     const loadEvent = async () => {
       setIsLoadingEvent(true);
@@ -78,17 +171,19 @@ export default function CreateEvent() {
         setFlyerUrl(data.flyerUrl || "");
         setFlyerPreview(data.flyerUrl || "");
         setIsLive(Boolean(data.isLive));
-        setVenueName(data.venueName || "");
-        setVenueAddress(data.venueAddress || "");
-        setVenueZipCode(data.venueZipCode || "");
-        setVenueState(data.venueState || "");
-        setVenueCountry(data.venueCountry || "");
-        setVenueCity(data.venueCity || "");
-        setAbout(data.about || "");
-        setCapacity(data.capacity ?? 0);
-        setAllAges(Boolean(data.allAges));
-        setAlcohol(Boolean(data.alcohol));
-        setGenres(data.genres || []);
+      setVenueName(data.venueName || "");
+      setVenueAddress(data.venueAddress || "");
+      setVenueZipCode(data.venueZipCode || "");
+      setVenueState(data.venueState || "");
+      setVenueCountry(data.venueCountry || "");
+      setVenueCity(data.venueCity || "");
+      setVenueNameInput(data.venueName || "");
+      setVenueSearchQuery(data.venueName || "");
+      setAbout(data.about || "");
+      setCapacity(data.capacity ?? 0);
+      setAllAges(Boolean(data.allAges));
+      setAlcohol(Boolean(data.alcohol));
+      setGenres(data.genres || []);
         setPerformers(
           data.performers && data.performers.length
             ? data.performers.map((p) => ({
@@ -126,6 +221,8 @@ export default function CreateEvent() {
     const trimmedCity = venueCity.trim();
     const trimmedState = venueState.trim();
     const trimmedCountry = venueCountry.trim();
+    const usingExistingVenue = selectedVenueId !== null && !isNewVenue;
+
     if (!trimmedTitle) {
       errors.title = "Title is required";
       hints.push("Title (3-100 chars)");
@@ -193,38 +290,40 @@ export default function CreateEvent() {
         hints.push("End time must be after start");
       }
     }
-    if (!trimmedVenueName) {
-      errors.venueName = "Venue name is required";
-      hints.push("Venue name (3-150 chars)");
-    } else if (trimmedVenueName.length < 3 || trimmedVenueName.length > 150) {
-      errors.venueName = "Venue name must be 3-150 characters";
-      hints.push("Venue name must be 3-150 characters");
-    }
-    if (!trimmedVenueAddress) {
-      errors.venueAddress = "Address is required";
-      hints.push("Address (5-200 chars)");
-    } else if (trimmedVenueAddress.length < 5 || trimmedVenueAddress.length > 200) {
-      errors.venueAddress = "Address must be 5-200 characters";
-      hints.push("Address must be 5-200 characters");
-    }
-    if (!venueZipCode) {
-      errors.venueZipCode = "Postal code is required";
-      hints.push("Postal code (5 digits)");
-    } else if (!/^[0-9]{5}$/.test(venueZipCode)) {
-      errors.venueZipCode = "Postal code must be exactly 5 digits";
-      hints.push("Postal code must be 5 digits");
-    }
-    if (!trimmedCity) {
-      errors.venueCity = "City is required";
-      hints.push("City");
-    }
-    if (!trimmedState) {
-      errors.venueState = "State is required";
-      hints.push("State");
-    }
-    if (!trimmedCountry) {
-      errors.venueCountry = "Country is required";
-      hints.push("Country");
+    if (!usingExistingVenue) {
+      if (!trimmedVenueName) {
+        errors.venueName = "Venue name is required";
+        hints.push("Venue name (3-150 chars)");
+      } else if (trimmedVenueName.length < 3 || trimmedVenueName.length > 150) {
+        errors.venueName = "Venue name must be 3-150 characters";
+        hints.push("Venue name must be 3-150 characters");
+      }
+      if (!trimmedVenueAddress) {
+        errors.venueAddress = "Address is required";
+        hints.push("Address (5-200 chars)");
+      } else if (trimmedVenueAddress.length < 5 || trimmedVenueAddress.length > 200) {
+        errors.venueAddress = "Address must be 5-200 characters";
+        hints.push("Address must be 5-200 characters");
+      }
+      if (!venueZipCode) {
+        errors.venueZipCode = "Postal code is required";
+        hints.push("Postal code (3-12 digits)");
+      } else if (!/^[0-9]{3,12}$/.test(venueZipCode)) {
+        errors.venueZipCode = "Postal code must be 3-12 digits";
+        hints.push("Postal code must be 3-12 digits");
+      }
+      if (!trimmedCity) {
+        errors.venueCity = "City is required";
+        hints.push("City");
+      }
+      if (!trimmedState) {
+        errors.venueState = "State is required";
+        hints.push("State");
+      }
+      if (!trimmedCountry) {
+        errors.venueCountry = "Country is required";
+        hints.push("Country");
+      }
     }
     if (!genres.length) {
       errors.genres = "Select at least one genre";
@@ -288,7 +387,7 @@ export default function CreateEvent() {
   };
 
   const handlePostalChange = (value: string) => {
-    const digits = value.replace(/\D/g, "").slice(0, 5);
+    const digits = value.replace(/\D/g, "").slice(0, 12);
     setVenueZipCode(digits);
   };
 
@@ -386,27 +485,29 @@ export default function CreateEvent() {
         throw new Error("Add at least one performer with a name.");
       }
 
+        const usingExistingVenue = selectedVenueId !== null && !isNewVenue;
         const payload = {
           title: title.trim(),
-        flyerUrl: flyerUrl || null,
-        eventDate,
-        startTime,
-        eventLengthHours: Number(eventLengthHours),
-        endTime: endTime || null,
-        isLive: false,
-        venueName: venueName.trim(),
-        venueAddress: venueAddress.trim(),
-        venueZipCode: venueZipCode.trim(),
-        venueState: venueState.trim(),
-        venueCountry: venueCountry.trim(),
-        venueCity: venueCity.trim(),
-        about: about.trim(),
-        capacity,
-        allAges,
-        alcohol,
-        performers: validPerformers,
-        genres,
-      };
+          flyerUrl: flyerUrl || null,
+          eventDate,
+          startTime,
+          eventLengthHours: Number(eventLengthHours),
+          endTime: endTime || null,
+          isLive: false,
+          selectedVenueId: usingExistingVenue ? selectedVenueId : null,
+          venueName: venueName.trim(),
+          venueAddress: venueAddress.trim(),
+          venueZipCode: venueZipCode.trim(),
+          venueState: venueState.trim(),
+          venueCountry: venueCountry.trim(),
+          venueCity: venueCity.trim(),
+          about: about.trim(),
+          capacity,
+          allAges,
+          alcohol,
+          performers: validPerformers,
+          genres,
+        };
 
       if (isEdit && eventId) {
         await eventService.update(eventId, payload);
@@ -741,21 +842,136 @@ export default function CreateEvent() {
                   </section>
 
                   <section className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
-                    <h2 className="text-lg font-semibold text-white">Venue</h2>
+                    <div className="flex flex-wrap items-center gap-3">
+                      <h2 className="text-lg font-semibold text-white">Venue</h2>
+                      {selectedVenueId && !isNewVenue && (
+                        <a
+                          href={`/venue/${selectedVenueId}`}
+                          className="text-xs text-[#f7c0c7] underline hover:text-white transition"
+                          target="_blank"
+                          rel="noreferrer"
+                        >
+                          View venue profile
+                        </a>
+                      )}
+                    </div>
+
                     <div className="grid md:grid-cols-2 gap-4">
-                      <div>
+                      <div className="relative" ref={venueSearchBoxRef}>
                         <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Venue Name
+                          Venue name
                         </label>
-                        <input
-                          type="text"
-                          value={venueName}
-                          onChange={(e) => setVenueName(e.target.value)}
-                          required
-                          aria-invalid={Boolean(fieldErrors.venueName)}
-                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                          placeholder="Main Hall"
-                        />
+                        <div className="relative">
+                          <input
+                            type="text"
+                            value={venueNameInput}
+                            onChange={(e) => {
+                              const value = e.target.value;
+                              setVenueNameInput(value);
+                              setVenueName(value);
+                              setVenueSearchQuery(value);
+                              setSelectedVenueId(null);
+                              setIsNewVenue(true);
+                              setVenueSearchOpen(true);
+                            }}
+                            onFocus={() => setVenueSearchOpen(true)}
+                            aria-invalid={Boolean(fieldErrors.venueName)}
+                            className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                            placeholder="Type to search venues..."
+                          />
+                          <div className="absolute right-3 top-1/2 -translate-y-1/2 text-xs text-gray-400">
+                            {isSearchingVenues
+                              ? "Searching..."
+                              : limitedVenueResults.length
+                                ? `${limitedVenueResults.length} found`
+                                : ""}
+                          </div>
+                        </div>
+                        <AnimatePresence>
+                          {venueSearchOpen && venueNameInput.trim() !== "" && (
+                            <motion.div
+                              initial={{ opacity: 0, y: -4 }}
+                              animate={{ opacity: 1, y: 0 }}
+                              exit={{ opacity: 0, y: -4 }}
+                              transition={{ duration: 0.15 }}
+                              className="absolute z-20 mt-2 w-full rounded-xl border border-white/10 bg-white/10 backdrop-blur-md shadow-xl overflow-hidden"
+                            >
+                              <div className="max-h-80 overflow-y-auto p-1 space-y-1">
+                                <AnimatePresence>
+                                {limitedVenueResults.map((venue, idx) => {
+                                    const isSelected = selectedVenueId === venue.id && !isNewVenue;
+                                    const isActive = idx === activeVenueIndex;
+                                    return (
+                                      <motion.button
+                                        key={venue.id}
+                                        type="button"
+                                        layout
+                                        onClick={() => selectVenue(venue)}
+                                        className={`w-full text-left px-3 py-2 rounded-lg transition bg-white/5 hover:bg-white/10 border ${
+                                          isSelected || isActive ? "border-[#b11226]/70" : "border-transparent"
+                                        }`}
+                                        whileHover={{ scale: 1.01 }}
+                                        whileTap={{ scale: 0.99 }}
+                                      >
+                                        <div className="flex items-center justify-between gap-2">
+                                          <p className="text-sm font-semibold text-white">{venue.name}</p>
+                                          <div className="flex items-center gap-1">
+                                            {typeof venue.usageCount === "number" && (
+                                              <span className="text-[10px] text-gray-300">Usage {venue.usageCount}</span>
+                                            )}
+                                            {venue.verified && (
+                                              <span className="text-[10px] px-2 py-1 rounded-full bg-[#b11226]/20 text-[#f7c0c7] border border-[#b11226]/40">
+                                                Verified
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                        <p className="text-xs text-gray-300">
+                                          {venue.city}, {venue.state}, {venue.country}
+                                        </p>
+                                      </motion.button>
+                                    );
+                                  })}
+                                </AnimatePresence>
+                                {venueSearchError && (
+                                  <div className="px-3 py-2 text-xs text-red-300">{venueSearchError}</div>
+                                )}
+                                {!venueResults.length && venueNameInput.trim().length >= 3 && !venueSearchError && (
+                                  <div className="px-3 py-2 text-xs text-gray-300">No venues found</div>
+                                )}
+                                {(() => {
+                                  const trimmed = venueNameInput.trim().toLowerCase();
+                                  const hasExact = venueResults.some(
+                                    (v) =>
+                                      v.name.toLowerCase() === trimmed &&
+                                      v.city.toLowerCase() === venueCity.toLowerCase() &&
+                                      v.state.toLowerCase() === venueState.toLowerCase() &&
+                                      v.country.toLowerCase() === venueCountry.toLowerCase()
+                                  );
+                                  if (!trimmed || hasExact) return null;
+                                  return (
+                                    <motion.button
+                                      key="create-new-venue"
+                                      type="button"
+                                      layout
+                                      onClick={() => {
+                                        setSelectedVenueId(null);
+                                        setIsNewVenue(true);
+                                        setVenueName(venueNameInput.trim());
+                                        setVenueSearchOpen(false);
+                                      }}
+                                      className="w-full text-left px-3 py-2 rounded-lg transition bg-white/5 hover:bg-white/10 border border-dashed border-white/15 text-sm text-white"
+                                      whileHover={{ scale: 1.01 }}
+                                      whileTap={{ scale: 0.99 }}
+                                    >
+                                      ➕ Create new venue: <span className="font-semibold">{venueNameInput.trim()}</span>
+                                    </motion.button>
+                                  );
+                                })()}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
                         {hasSubmitted && fieldErrors.venueName && (
                           <p className="text-xs text-red-400 mt-1">{fieldErrors.venueName}</p>
                         )}
@@ -775,97 +991,163 @@ export default function CreateEvent() {
                       </div>
                     </div>
 
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Street Address
-                        </label>
-                        <input
-                          type="text"
-                          value={venueAddress}
-                          onChange={(e) => setVenueAddress(e.target.value)}
-                          required
-                          aria-invalid={Boolean(fieldErrors.venueAddress)}
-                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                          placeholder="123 Main St"
-                        />
-                        {hasSubmitted && fieldErrors.venueAddress && (
-                          <p className="text-xs text-red-400 mt-1">{fieldErrors.venueAddress}</p>
-                        )}
+                    {!isNewVenue && selectedVenueId && (
+                      <div className="flex flex-wrap gap-2 text-xs text-gray-200">
+                        <span className="px-3 py-1 rounded-full bg-white/5 border border-white/10">
+                          Using verified venue
+                        </span>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Zip Code
-                        </label>
-                        <input
-                          type="text"
-                          value={venueZipCode}
-                          onChange={(e) => handlePostalChange(e.target.value)}
-                          required
-                          inputMode="numeric"
-                          aria-invalid={Boolean(fieldErrors.venueZipCode)}
-                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                          placeholder="90210"
-                        />
-                        {hasSubmitted && fieldErrors.venueZipCode && (
-                          <p className="text-xs text-red-400 mt-1">{fieldErrors.venueZipCode}</p>
-                        )}
-                      </div>
-                    </div>
+                    )}
 
-                    <div className="grid md:grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          City
-                        </label>
-                        <input
-                          type="text"
-                          value={venueCity}
-                          onChange={(e) => setVenueCity(e.target.value)}
-                          required
-                          aria-invalid={Boolean(fieldErrors.venueCity)}
-                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                          placeholder="CDMX"
-                        />
-                        {hasSubmitted && fieldErrors.venueCity && (
-                          <p className="text-xs text-red-400 mt-1">{fieldErrors.venueCity}</p>
-                        )}
+                    {isNewVenue ? (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Street Address
+                          </label>
+                          <input
+                            type="text"
+                            value={venueAddress}
+                            onChange={(e) => setVenueAddress(e.target.value)}
+                            aria-invalid={Boolean(fieldErrors.venueAddress)}
+                            className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                            placeholder="123 Main St"
+                          />
+                          {hasSubmitted && fieldErrors.venueAddress && (
+                            <p className="text-xs text-red-400 mt-1">{fieldErrors.venueAddress}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Postal Code
+                          </label>
+                          <input
+                            type="text"
+                            value={venueZipCode}
+                            onChange={(e) => handlePostalChange(e.target.value)}
+                            inputMode="numeric"
+                            aria-invalid={Boolean(fieldErrors.venueZipCode)}
+                            className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                            placeholder="e.g. 90210"
+                          />
+                          {hasSubmitted && fieldErrors.venueZipCode && (
+                            <p className="text-xs text-red-400 mt-1">{fieldErrors.venueZipCode}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            City
+                          </label>
+                          <input
+                            type="text"
+                            value={venueCity}
+                            onChange={(e) => setVenueCity(e.target.value)}
+                            aria-invalid={Boolean(fieldErrors.venueCity)}
+                            className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                            placeholder="City"
+                          />
+                          {hasSubmitted && fieldErrors.venueCity && (
+                            <p className="text-xs text-red-400 mt-1">{fieldErrors.venueCity}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            State / Province
+                          </label>
+                          <input
+                            type="text"
+                            value={venueState}
+                            onChange={(e) => setVenueState(e.target.value)}
+                            aria-invalid={Boolean(fieldErrors.venueState)}
+                            className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                            placeholder="State / Province"
+                          />
+                          {hasSubmitted && fieldErrors.venueState && (
+                            <p className="text-xs text-red-400 mt-1">{fieldErrors.venueState}</p>
+                          )}
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Country
+                          </label>
+                          <input
+                            type="text"
+                            value={venueCountry}
+                            onChange={(e) => setVenueCountry(e.target.value)}
+                            aria-invalid={Boolean(fieldErrors.venueCountry)}
+                            className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                            placeholder="Country"
+                          />
+                          {hasSubmitted && fieldErrors.venueCountry && (
+                            <p className="text-xs text-red-400 mt-1">{fieldErrors.venueCountry}</p>
+                          )}
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          State / Province
-                        </label>
-                        <input
-                          type="text"
-                          value={venueState}
-                          onChange={(e) => setVenueState(e.target.value)}
-                          required
-                          aria-invalid={Boolean(fieldErrors.venueState)}
-                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                          placeholder="California"
-                        />
-                        {hasSubmitted && fieldErrors.venueState && (
-                          <p className="text-xs text-red-400 mt-1">{fieldErrors.venueState}</p>
-                        )}
+                    ) : (
+                      <div className="grid md:grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Street Address
+                          </label>
+                          <input
+                            type="text"
+                            value={venueAddress}
+                            readOnly
+                            className="w-full px-4 py-3 bg-[#0f0f1a]/60 border border-gray-700 rounded-lg text-gray-300 placeholder-gray-500 focus:outline-none"
+                            placeholder="Venue address"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Postal Code
+                          </label>
+                          <input
+                            type="text"
+                            value={venueZipCode}
+                            inputMode="numeric"
+                            readOnly
+                            className="w-full px-4 py-3 bg-[#0f0f1a]/60 border border-gray-700 rounded-lg text-gray-300 placeholder-gray-500 focus:outline-none"
+                            placeholder="Postal code"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            City
+                          </label>
+                          <input
+                            type="text"
+                            value={venueCity}
+                            readOnly
+                            className="w-full px-4 py-3 bg-[#0f0f1a]/60 border border-gray-700 rounded-lg text-gray-300 placeholder-gray-500 focus:outline-none"
+                            placeholder="City"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            State / Province
+                          </label>
+                          <input
+                            type="text"
+                            value={venueState}
+                            readOnly
+                            className="w-full px-4 py-3 bg-[#0f0f1a]/60 border border-gray-700 rounded-lg text-gray-300 placeholder-gray-500 focus:outline-none"
+                            placeholder="State / Province"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-gray-300 mb-2">
+                            Country
+                          </label>
+                          <input
+                            type="text"
+                            value={venueCountry}
+                            readOnly
+                            className="w-full px-4 py-3 bg-[#0f0f1a]/60 border border-gray-700 rounded-lg text-gray-300 placeholder-gray-500 focus:outline-none"
+                            placeholder="Country"
+                          />
+                        </div>
                       </div>
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Country
-                        </label>
-                        <input
-                          type="text"
-                          value={venueCountry}
-                          onChange={(e) => setVenueCountry(e.target.value)}
-                          required
-                          aria-invalid={Boolean(fieldErrors.venueCountry)}
-                          className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                          placeholder="United States"
-                        />
-                        {hasSubmitted && fieldErrors.venueCountry && (
-                          <p className="text-xs text-red-400 mt-1">{fieldErrors.venueCountry}</p>
-                        )}
-                      </div>
-                    </div>
+                    )}
                   </section>
 
                   <section className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">

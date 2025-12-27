@@ -11,7 +11,7 @@ import java.util.List;
 
 import com.anok.validation.AllowedGenres;
 import com.anok.validation.EventTimingValid;
-import com.anok.validation.PostalCode;
+import java.util.UUID;
 
 @EventTimingValid
 public class EventRequest {
@@ -39,29 +39,25 @@ public class EventRequest {
     @JsonProperty("isLive")
     private Boolean isLive;
 
-    @NotBlank
-    @Size(min = 3, max = 150)
+    @Size(min = 0, max = 150)
     private String venueName;
 
-    @NotBlank
-    @Size(min = 5, max = 200)
+    @Size(min = 0, max = 200)
     private String venueAddress;
 
-    @NotBlank
-    @PostalCode
+    @Size(min = 0, max = 20)
     private String venueZipCode;
 
-    @NotBlank
-    @Size(min = 2, max = 255)
+    @Size(min = 0, max = 255)
     private String venueState;
 
-    @NotBlank
-    @Size(min = 2, max = 255)
+    @Size(min = 0, max = 255)
     private String venueCountry;
 
-    @NotBlank
     @Size(max = 255)
     private String venueCity;
+
+    private UUID selectedVenueId;
 
     @NotBlank
     @Size(min = 10, max = 2000)
@@ -188,6 +184,14 @@ public class EventRequest {
 
     public void setVenueCity(String venueCity) {
         this.venueCity = venueCity;
+    }
+
+    public UUID getSelectedVenueId() {
+        return selectedVenueId;
+    }
+
+    public void setSelectedVenueId(UUID selectedVenueId) {
+        this.selectedVenueId = selectedVenueId;
     }
 
     public String getAbout() {

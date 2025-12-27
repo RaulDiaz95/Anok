@@ -34,6 +34,7 @@ public class EventResponse {
     private Boolean allAges;
     private Boolean alcohol;
     private EventStatus status;
+    private UUID selectedVenueId;
     private List<String> genres = new ArrayList<>();
     private List<PerformerResponse> performers = new ArrayList<>();
     private UUID ownerId;
@@ -197,6 +198,14 @@ public class EventResponse {
 
     public void setAlcohol(Boolean alcohol) {
         this.alcohol = alcohol;
+    }
+
+    public UUID getSelectedVenueId() {
+        return selectedVenueId;
+    }
+
+    public void setSelectedVenueId(UUID selectedVenueId) {
+        this.selectedVenueId = selectedVenueId;
     }
 
     public EventStatus getStatus() {

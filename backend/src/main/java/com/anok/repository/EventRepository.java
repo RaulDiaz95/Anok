@@ -40,4 +40,10 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
 
     @EntityGraph(attributePaths = {"owner", "genres", "performers"})
     List<Event> findAllByStatusOrderByCreatedAtAsc(EventStatus status);
+
+    @EntityGraph(attributePaths = {"owner", "genres", "performers"})
+    List<Event> findAllBySelectedVenue_IdAndStatusAndEventDateAfterOrderByEventDateAsc(UUID venueId, EventStatus status, LocalDate date);
+
+    @EntityGraph(attributePaths = {"owner", "genres", "performers"})
+    List<Event> findTop10BySelectedVenue_IdAndStatusAndEventDateBeforeOrderByEventDateDesc(UUID venueId, EventStatus status, LocalDate date);
 }

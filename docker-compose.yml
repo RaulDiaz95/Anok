@@ -26,6 +26,7 @@ services:
       mvn
       -DskipTests
       -Dspring-boot.run.profiles=${SPRING_PROFILES_ACTIVE:-dev}
+      clean
       spring-boot:run
     volumes:
       - ./backend:/app

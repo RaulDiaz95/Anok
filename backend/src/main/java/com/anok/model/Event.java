@@ -73,6 +73,10 @@ public class Event {
     @Column(name = "venue_city", nullable = false, length = 255)
     private String venueCity = "";
 
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "selected_venue_id")
+    private Venue selectedVenue;
+
     @Column(name = "about", nullable = false, columnDefinition = "TEXT")
     private String about = "";
 
@@ -263,6 +267,14 @@ public class Event {
 
     public void setVenueCity(String venueCity) {
         this.venueCity = venueCity;
+    }
+
+    public Venue getSelectedVenue() {
+        return selectedVenue;
+    }
+
+    public void setSelectedVenue(Venue selectedVenue) {
+        this.selectedVenue = selectedVenue;
     }
 
     public Integer getCapacity() {

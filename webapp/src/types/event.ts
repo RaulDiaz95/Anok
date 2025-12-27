@@ -43,6 +43,7 @@ export interface Event {
   performers: Performer[];
   ownerId?: string | null;
   ownerName?: string | null;
+  selectedVenueId?: string | null;
 }
 
 export interface PageResponse<T> {
@@ -65,6 +66,7 @@ export interface CreateEventInput {
   status?: EventStatus;
   about: string;
   title: string;
+  selectedVenueId?: string | null;
   venueName: string;
   venueAddress: string;
   venueZipCode: string;

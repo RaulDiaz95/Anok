@@ -10,7 +10,9 @@ import com.anok.model.EventGenre;
 import com.anok.model.EventPerformer;
 import com.anok.model.EventStatus;
 import com.anok.model.User;
+import com.anok.model.Venue;
 import com.anok.repository.EventRepository;
+import com.anok.repository.VenueRepository;
 import com.anok.repository.UserRepository;
 import com.anok.validation.GenreCatalog;
 import org.springframework.data.domain.Page;
@@ -34,11 +36,13 @@ public class EventService {
 
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    private final VenueRepository venueRepository;
     private final S3Service s3Service;
 
-    public EventService(EventRepository eventRepository, UserRepository userRepository, S3Service s3Service) {
+    public EventService(EventRepository eventRepository, UserRepository userRepository, VenueRepository venueRepository, S3Service s3Service) {
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
+        this.venueRepository = venueRepository;
         this.s3Service = s3Service;
     }
 
@@ -141,6 +145,9 @@ public class EventService {
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
         event.setStatus(EventStatus.APPROVED);
         event.setLive(true);
+        if (event.getSelectedVenue() != null) {
+            venueRepository.incrementUsage(event.getSelectedVenue().getId());
+        }
         Event saved = eventRepository.save(event);
         return toResponse(saved);
     }
@@ -178,12 +185,29 @@ public class EventService {
         } else {
             event.setLive(Boolean.TRUE.equals(request.getLive()));
         }
-        event.setVenueName(request.getVenueName().trim());
-        event.setVenueAddress(request.getVenueAddress().trim());
-        event.setVenueZipCode(request.getVenueZipCode().trim());
-        event.setVenueState(request.getVenueState().trim());
-        event.setVenueCountry(request.getVenueCountry().trim());
-        event.setVenueCity(request.getVenueCity().trim());
+        // Only apply venue details for new venues. If selectedVenueId is present, keep existing event fields unchanged on update.
+        if (request.getSelectedVenueId() == null || event.getId() == null) {
+            if (request.getVenueName() != null) event.setVenueName(request.getVenueName().trim());
+            if (request.getVenueAddress() != null) event.setVenueAddress(request.getVenueAddress().trim());
+            if (request.getVenueZipCode() != null) event.setVenueZipCode(request.getVenueZipCode().trim());
+            if (request.getVenueState() != null) event.setVenueState(request.getVenueState().trim());
+            if (request.getVenueCountry() != null) event.setVenueCountry(request.getVenueCountry().trim());
+            if (request.getVenueCity() != null) event.setVenueCity(request.getVenueCity().trim());
+        }
+        if (request.getSelectedVenueId() != null) {
+            Venue venue = venueRepository.findById(request.getSelectedVenueId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Selected venue not found"));
+            event.setSelectedVenue(venue);
+            applyVenueDefaults(event, venue);
+        } else if (isCreate) {
+            Venue venue = resolveVenueFromRequest(request);
+            event.setSelectedVenue(venue);
+            if (venue != null) {
+                applyVenueDefaults(event, venue);
+            }
+        } else {
+            event.setSelectedVenue(null);
+        }
         event.setCapacity(request.getCapacity());
         event.setAllAges(request.getAllAges());
         event.setAlcohol(request.getAlcohol());
@@ -196,6 +220,10 @@ public class EventService {
     }
 
     private EventResponse toResponse(Event event) {
+        return toResponsePublic(event);
+    }
+
+    public EventResponse toResponsePublic(Event event) {
         EventResponse response = new EventResponse();
         response.setId(event.getId());
         response.setTitle(event.getTitle());
@@ -217,6 +245,9 @@ public class EventService {
         response.setAllAges(event.getAllAges());
         response.setAlcohol(event.getAlcohol());
         response.setAgeRestriction(event.getAgeRestriction());
+        if (event.getSelectedVenue() != null) {
+            response.setSelectedVenueId(event.getSelectedVenue().getId());
+        }
         response.setStatus(event.getStatus());
         if (event.getGenres() != null) {
             List<String> genreLabels = event.getGenres().stream()
@@ -275,8 +306,28 @@ public class EventService {
                 throw new ValidationException("Invalid time range");
             }
         }
-        if (request.getVenueZipCode() != null && !request.getVenueZipCode().trim().matches("\\d{5}")) {
-            throw new ValidationException("venueZipCode", "Postal code must be exactly 5 digits");
+        if (request.getSelectedVenueId() == null) {
+            if (isBlank(request.getVenueName())) {
+                throw new ValidationException("venueName", "Venue name is required");
+            }
+            if (isBlank(request.getVenueAddress())) {
+                throw new ValidationException("venueAddress", "Venue address is required");
+            }
+            if (isBlank(request.getVenueCity())) {
+                throw new ValidationException("venueCity", "Venue city is required");
+            }
+            if (isBlank(request.getVenueState())) {
+                throw new ValidationException("venueState", "Venue state is required");
+            }
+            if (isBlank(request.getVenueCountry())) {
+                throw new ValidationException("venueCountry", "Venue country is required");
+            }
+            if (isBlank(request.getVenueZipCode())) {
+                throw new ValidationException("venueZipCode", "Postal code is required");
+            }
+            if (!request.getVenueZipCode().trim().matches("\\d{3,12}")) {
+                throw new ValidationException("venueZipCode", "Postal code must be 3-12 digits");
+            }
         }
         if (request.getGenres() == null || request.getGenres().isEmpty()) {
             throw new ValidationException("genres", "At least one genre is required");
@@ -347,5 +398,72 @@ public class EventService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private Venue resolveVenueFromRequest(EventRequest request) {
+        String name = trimToNull(request.getVenueName());
+        if (name == null) {
+            return null;
+        }
+        String city = trimToNull(request.getVenueCity());
+        String state = trimToNull(request.getVenueState());
+        String country = trimToNull(request.getVenueCountry());
+        String address = trimToNull(request.getVenueAddress());
+        String postalCode = trimToNull(request.getVenueZipCode());
+
+        java.util.Optional<Venue> exactMatch = java.util.Optional.empty();
+        if (city != null && state != null && country != null) {
+            exactMatch = venueRepository.findByNameIgnoreCaseAndCityIgnoreCaseAndStateIgnoreCaseAndCountryIgnoreCase(
+                    name,
+                    city,
+                    state,
+                    country
+            );
+        }
+
+        return exactMatch
+                .or(() -> venueRepository.findFirstByNameIgnoreCaseOrderByUsageCountDesc(name))
+                .orElseGet(() -> createVenueFromRequest(name, city, state, country, address, postalCode, request.getCapacity()));
+    }
+
+    private Venue createVenueFromRequest(String name, String city, String state, String country, String address, String postalCode, Integer capacity) {
+        if (city == null) {
+            throw new ValidationException("venueCity", "Venue city is required for new venues");
+        }
+        if (state == null) {
+            throw new ValidationException("venueState", "Venue state is required for new venues");
+        }
+        if (country == null) {
+            throw new ValidationException("venueCountry", "Venue country is required for new venues");
+        }
+        if (address == null) {
+            throw new ValidationException("venueAddress", "Venue address is required for new venues");
+        }
+        if (postalCode == null) {
+            throw new ValidationException("venueZipCode", "Postal code is required for new venues");
+        }
+        Venue venue = new Venue();
+        venue.setName(name);
+        venue.setCity(city);
+        venue.setState(state);
+        venue.setCountry(country);
+        venue.setAddress(address);
+        venue.setPostalCode(postalCode);
+        venue.setCapacity(capacity);
+        return venueRepository.save(venue);
+    }
+
+    private void applyVenueDefaults(Event event, Venue venue) {
+        if (isBlank(event.getVenueName())) event.setVenueName(venue.getName());
+        if (isBlank(event.getVenueAddress())) event.setVenueAddress(venue.getAddress());
+        if (isBlank(event.getVenueZipCode())) event.setVenueZipCode(venue.getPostalCode());
+        if (isBlank(event.getVenueCity())) event.setVenueCity(venue.getCity());
+        if (isBlank(event.getVenueState())) event.setVenueState(venue.getState());
+        if (isBlank(event.getVenueCountry())) event.setVenueCountry(venue.getCountry());
+        if (event.getCapacity() == null) event.setCapacity(venue.getCapacity());
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }
