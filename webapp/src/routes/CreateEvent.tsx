@@ -688,7 +688,7 @@ export default function CreateEvent() {
                   </div>
                 </div>
 
-                <div className="grid md:grid-cols-3 gap-4 mt-4">
+                <div className="grid md:grid-cols-2 gap-4 mt-4">
                   <div className="space-y-2">
                     <label className="block text-sm font-medium text-gray-300">
                       Start Time
