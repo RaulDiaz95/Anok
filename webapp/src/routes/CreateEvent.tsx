@@ -93,6 +93,27 @@ export default function CreateEvent() {
     setActiveVenueIndex(-1);
     setVenueSearchQuery(venue.name);
   };
+  const canClearVenue =
+    Boolean(selectedVenueId) &&
+    !isNewVenue &&
+    [venueNameInput, venueAddress, venueZipCode, venueCity, venueState, venueCountry].every(
+      (value) => value.trim() !== ""
+    );
+  const clearVenueInputs = () => {
+    setSelectedVenueId(null);
+    setIsNewVenue(true);
+    setVenueNameInput("");
+    setVenueName("");
+    setVenueAddress("");
+    setVenueZipCode("");
+    setVenueCity("");
+    setVenueState("");
+    setVenueCountry("");
+    setCapacity(0);
+    setVenueSearchQuery("");
+    setVenueSearchOpen(false);
+    setActiveVenueIndex(-1);
+  };
   const [about, setAbout] = useState("");
   const [capacity, setCapacity] = useState(0);
   const [allAges, setAllAges] = useState(true);
@@ -853,6 +874,16 @@ export default function CreateEvent() {
                         >
                           View venue profile
                         </a>
+                      )}
+                      {canClearVenue && (
+                        <button
+                          type="button"
+                          onClick={clearVenueInputs}
+                          className="text-xs text-gray-200 border border-white/15 rounded-full px-3 py-1 hover:border-[#b11226]/60 hover:text-white transition inline-flex items-center gap-1"
+                        >
+                          <Trash2 size={12} />
+                          Clear venue
+                        </button>
                       )}
                     </div>
 

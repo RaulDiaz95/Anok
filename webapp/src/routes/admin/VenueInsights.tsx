@@ -147,7 +147,7 @@ export default function VenueInsights() {
               <h1 className="text-3xl font-bold mb-1">Venue Insights</h1>
               <p className="text-gray-400 text-sm">Monitor venue quality, usage, and verification.</p>
             </div>
-            {(isInsightsLoading || verifyMutation.isLoading) && (
+            {(isInsightsLoading || verifyMutation.isPending) && (
               <div className="flex items-center gap-2 text-gray-300 text-sm">
                 <Loader2 className="animate-spin" size={16} />
                 Refreshing...
@@ -219,9 +219,9 @@ export default function VenueInsights() {
                         <button
                           onClick={() => handleVerify(v.id)}
                           className="px-3 py-1.5 rounded-lg bg-[#b11226] text-white text-xs hover:bg-[#d31a33] transition flex items-center gap-1"
-                          disabled={verifyMutation.isLoading}
+                          disabled={verifyMutation.isPending}
                         >
-                          {verifyMutation.isLoading ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle2 size={14} />}
+                          {verifyMutation.isPending ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle2 size={14} />}
                           Verify
                         </button>
                       }
