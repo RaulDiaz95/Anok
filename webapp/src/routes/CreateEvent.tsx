@@ -29,8 +29,6 @@ export default function CreateEvent() {
   const [eventDate, setEventDate] = useState("");
   const [startTime, setStartTime] = useState("");
   const [eventLengthHours, setEventLengthHours] = useState<number>(1);
-  const [endTime, setEndTime] = useState("");
-  const [endTimeEdited, setEndTimeEdited] = useState(false);
   const [flyerPreview, setFlyerPreview] = useState("");
   const [flyerUrl, setFlyerUrl] = useState("");
   const [isLive, setIsLive] = useState(false);
@@ -187,8 +185,6 @@ export default function CreateEvent() {
         setEventDate(data.eventDate || "");
         setStartTime(toTimeInput(data.startTime));
         setEventLengthHours(data.eventLengthHours ?? 0);
-        setEndTime(toTimeInput(data.endTime));
-        setEndTimeEdited(Boolean(data.endTime));
         setFlyerUrl(data.flyerUrl || "");
         setFlyerPreview(data.flyerUrl || "");
         setIsLive(Boolean(data.isLive));
@@ -224,13 +220,6 @@ export default function CreateEvent() {
     };
     loadEvent();
   }, [eventId, isAuthenticated, isEdit]);
-
-  useEffect(() => {
-    if (startTime && eventLengthHours >= 1 && !endTimeEdited) {
-      const computed = computeEndTime(startTime, eventLengthHours);
-      setEndTime(computed);
-    }
-  }, [startTime, eventLengthHours, endTimeEdited]);
 
   const validationErrors = useMemo(() => {
     const errors: Record<string, string> = {};
@@ -296,21 +285,6 @@ export default function CreateEvent() {
       errors.eventLengthHours = "Event must last at least 1 hour";
       hints.push("Event must last at least 1 hour");
     }
-    if (startTime) {
-      const [sh, sm] = startTime.split(":").map((v) => parseInt(v || "0", 10));
-      const startMinutes = sh * 60 + sm;
-      let endMinutes = null as number | null;
-      if (endTime) {
-        const [eh, em] = endTime.split(":").map((v) => parseInt(v || "0", 10));
-        endMinutes = eh * 60 + em;
-      } else if (eventLengthHours >= 1) {
-        endMinutes = startMinutes + eventLengthHours * 60;
-      }
-      if (endMinutes !== null && endMinutes < startMinutes) {
-        errors.endTime = "Invalid time range";
-        hints.push("End time must be after start");
-      }
-    }
     if (!usingExistingVenue) {
       if (!trimmedVenueName) {
         errors.venueName = "Venue name is required";
@@ -361,7 +335,6 @@ export default function CreateEvent() {
     eventDate,
     startTime,
     eventLengthHours,
-    endTime,
     venueName,
     venueAddress,
     venueZipCode,
@@ -513,7 +486,6 @@ export default function CreateEvent() {
           eventDate,
           startTime,
           eventLengthHours: Number(eventLengthHours),
-          endTime: endTime || null,
           isLive: false,
           selectedVenueId: usingExistingVenue ? selectedVenueId : null,
           venueName: venueName.trim(),
@@ -748,23 +720,6 @@ export default function CreateEvent() {
                     />
                     {hasSubmitted && fieldErrors.eventLengthHours && (
                       <p className="text-xs text-red-400 mt-1">{fieldErrors.eventLengthHours}</p>
-                    )}
-                  </div>
-                  <div className="space-y-2">
-                    <label className="block text-sm font-medium text-gray-300">
-                      End Time (optional)
-                    </label>
-                        <input
-                          type="time"
-                          value={endTime}
-                      onChange={(e) => {
-                        setEndTime(e.target.value);
-                        setEndTimeEdited(e.target.value !== "");
-                      }}
-                      className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                    />
-                    {hasSubmitted && fieldErrors.endTime && (
-                      <p className="text-xs text-red-400 mt-1">{fieldErrors.endTime}</p>
                     )}
                   </div>
                 </div>
@@ -1329,18 +1284,6 @@ export default function CreateEvent() {
       </div>
     </>
   );
-}
-
-function computeEndTime(start: string, lengthHours: number): string {
-  const [hoursStr, minutesStr] = start.split(":");
-  const hours = parseInt(hoursStr || "0", 10);
-  const minutes = parseInt(minutesStr || "0", 10);
-  const date = new Date();
-  date.setHours(hours, minutes, 0, 0);
-  date.setHours(date.getHours() + lengthHours);
-  const endH = date.getHours().toString().padStart(2, "0");
-  const endM = date.getMinutes().toString().padStart(2, "0");
-  return `${endH}:${endM}`;
 }
 
 function toTimeInput(time?: string | null): string {
