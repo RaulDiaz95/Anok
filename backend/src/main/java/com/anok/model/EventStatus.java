@@ -4,6 +4,6 @@ public enum EventStatus {
     DRAFT,
     PENDING_REVIEW,
     APPROVED,
-    REJECTED,
-    LIVE
+    DISABLED,
+    DELETED
 }

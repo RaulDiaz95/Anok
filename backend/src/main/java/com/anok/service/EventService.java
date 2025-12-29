@@ -65,10 +65,17 @@ public class EventService {
     public EventResponse updateEvent(UUID eventId, EventRequest request, String ownerEmail) {
         Event event = eventRepository.findByIdAndOwner_EmailNormalized(eventId, ownerEmail.toLowerCase())
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found or not owned by user"));
+        if (event.getStatus() == EventStatus.DELETED) {
+            throw new ValidationException("Event has been deleted");
+        }
         // Any edit triggers re-review
         applyEventRequest(event, request, false);
         event.setStatus(EventStatus.PENDING_REVIEW);
         event.setLive(false);
+        event.setApprovedAt(null);
+        event.setApprovedBy(null);
+        event.setDisabledAt(null);
+        event.setDisabledBy(null);
         Event saved = eventRepository.save(event);
         return toResponse(saved);
     }
@@ -77,6 +84,7 @@ public class EventService {
         String normalizedEmail = ownerEmail.toLowerCase();
         return eventRepository.findAllByOwner_EmailNormalizedOrderByEventDateTimeDesc(normalizedEmail)
                 .stream()
+                .filter(event -> event.getStatus() != EventStatus.DELETED)
                 .map(this::toResponse)
                 .collect(Collectors.toList());
     }
@@ -85,13 +93,10 @@ public class EventService {
     public EventResponse updateLiveStatus(UUID eventId, Boolean isLive, String ownerEmail) {
         Event event = eventRepository.findByIdAndOwner_EmailNormalized(eventId, ownerEmail.toLowerCase())
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found or not owned by user"));
-        if (event.getStatus() != EventStatus.APPROVED && event.getStatus() != EventStatus.LIVE) {
+        if (event.getStatus() != EventStatus.APPROVED) {
             throw new IllegalStateException("Event must be approved before toggling live state");
         }
         event.setLive(Boolean.TRUE.equals(isLive));
-        if (Boolean.TRUE.equals(isLive)) {
-            event.setStatus(EventStatus.LIVE);
-        }
         Event saved = eventRepository.save(event);
         return toResponse(saved);
     }
@@ -99,7 +104,7 @@ public class EventService {
     public List<EventResponse> listUpcomingEvents() {
         // Use UTC date and include a 1-day grace window to avoid timezone cutoffs for "today"
         LocalDate utcToday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
-        return eventRepository.findAllByEventDateGreaterThanEqualAndIsLiveTrueOrderByEventDateTimeAsc(utcToday)
+        return eventRepository.findAllByEventDateGreaterThanEqualAndStatusAndIsLiveTrueOrderByEventDateTimeAsc(utcToday, EventStatus.APPROVED)
                 .stream()
                 .map(this::toResponse)
                 .collect(Collectors.toList());
@@ -109,7 +114,7 @@ public class EventService {
         // Use UTC date and include a 1-day grace window to avoid timezone cutoffs for "today"
         LocalDate utcToday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
         Pageable pageable = PageRequest.of(page, size);
-        Page<Event> eventPage = eventRepository.findAllByEventDateGreaterThanEqualAndIsLiveTrueOrderByEventDateTimeAsc(utcToday, pageable);
+        Page<Event> eventPage = eventRepository.findAllByEventDateGreaterThanEqualAndStatusAndIsLiveTrueOrderByEventDateTimeAsc(utcToday, EventStatus.APPROVED, pageable);
         List<EventResponse> content = eventPage.getContent()
                 .stream()
                 .map(this::toResponse)
@@ -132,34 +137,93 @@ public class EventService {
         return toResponse(event);
     }
 
+    public EventResponse getEventAdmin(UUID id) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        return toResponseAdmin(event);
+    }
+
     public List<EventResponse> findByStatus(EventStatus status) {
         return eventRepository.findAllByStatusOrderByCreatedAtAsc(status)
                 .stream()
-                .map(this::toResponse)
+                .map(this::toResponseAdmin)
+                .collect(Collectors.toList());
+    }
+
+    public List<EventResponse> findAllAdmin() {
+        return eventRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(this::toResponseAdmin)
                 .collect(Collectors.toList());
     }
 
     @Transactional
-    public EventResponse approve(UUID id) {
+    public EventResponse approve(UUID id, String adminEmail) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        if (event.getStatus() == EventStatus.DELETED) {
+            throw new ValidationException("Event has been deleted");
+        }
         event.setStatus(EventStatus.APPROVED);
         event.setLive(true);
+        event.setApprovedAt(LocalDateTime.now());
+        event.setApprovedBy(resolveAdminId(adminEmail));
+        event.setDisabledAt(null);
+        event.setDisabledBy(null);
+        event.setDeletedAt(null);
+        event.setDeletedBy(null);
         if (event.getSelectedVenue() != null) {
             venueRepository.incrementUsage(event.getSelectedVenue().getId());
         }
         Event saved = eventRepository.save(event);
-        return toResponse(saved);
+        return toResponseAdmin(saved);
     }
 
     @Transactional
-    public EventResponse reject(UUID id) {
+    public EventResponse disable(UUID id, String adminEmail) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
-        event.setStatus(EventStatus.REJECTED);
+        if (event.getStatus() == EventStatus.DELETED) {
+            throw new ValidationException("Event has been deleted");
+        }
+        event.setStatus(EventStatus.DISABLED);
         event.setLive(false);
+        event.setDisabledAt(LocalDateTime.now());
+        event.setDisabledBy(resolveAdminId(adminEmail));
         Event saved = eventRepository.save(event);
-        return toResponse(saved);
+        return toResponseAdmin(saved);
+    }
+
+    @Transactional
+    public EventResponse delete(UUID id, String adminEmail) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        event.setStatus(EventStatus.DELETED);
+        event.setLive(false);
+        event.setDeletedAt(LocalDateTime.now());
+        event.setDeletedBy(resolveAdminId(adminEmail));
+        Event saved = eventRepository.save(event);
+        return toResponseAdmin(saved);
+    }
+
+    @Transactional
+    public EventResponse requestChanges(UUID id, String adminEmail, String adminNotes) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        if (event.getStatus() == EventStatus.DELETED) {
+            throw new ValidationException("Event has been deleted");
+        }
+        String trimmedNotes = adminNotes == null ? null : adminNotes.trim();
+        if (trimmedNotes != null && trimmedNotes.isEmpty()) {
+            trimmedNotes = null;
+        }
+        event.setStatus(EventStatus.DISABLED);
+        event.setLive(false);
+        event.setAdminNotes(trimmedNotes);
+        event.setDisabledAt(LocalDateTime.now());
+        event.setDisabledBy(resolveAdminId(adminEmail));
+        Event saved = eventRepository.save(event);
+        return toResponseAdmin(saved);
     }
 
     private void applyEventRequest(Event event, EventRequest request, boolean isCreate) {
@@ -276,6 +340,29 @@ public class EventService {
             response.setOwnerName(event.getOwner().getFullName());
         }
         return response;
+    }
+
+    private EventResponse toResponseAdmin(Event event) {
+        EventResponse response = toResponsePublic(event);
+        response.setAdminNotes(event.getAdminNotes());
+        if (event.getOwner() != null) {
+            response.setOwnerEmail(event.getOwner().getEmail());
+            String submittedBy = event.getOwner().getFullName();
+            if (submittedBy == null || submittedBy.trim().isEmpty()) {
+                submittedBy = event.getOwner().getEmail();
+            }
+            response.setSubmittedByUser(submittedBy);
+        }
+        return response;
+    }
+
+    private UUID resolveAdminId(String adminEmail) {
+        if (adminEmail == null) {
+            return null;
+        }
+        return userRepository.findByEmailNormalized(adminEmail.toLowerCase())
+                .map(User::getId)
+                .orElse(null);
     }
 
     private void validateRequest(EventRequest request) {
