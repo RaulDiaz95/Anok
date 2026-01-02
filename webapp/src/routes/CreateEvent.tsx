@@ -130,6 +130,7 @@ export default function CreateEvent() {
   const [isLoadingEvent, setIsLoadingEvent] = useState(false);
   const [genreQuery, setGenreQuery] = useState("");
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [adminNotes, setAdminNotes] = useState("");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -202,6 +203,7 @@ export default function CreateEvent() {
       setAllAges(Boolean(data.allAges));
       setAlcohol(Boolean(data.alcohol));
       setGenres(data.genres || []);
+      setAdminNotes(data.adminNotes || "");
         setPerformers(
           data.performers && data.performers.length
             ? data.performers.map((p) => ({
@@ -552,8 +554,14 @@ export default function CreateEvent() {
             className="w-full"
           >
             <div className="bg-[#1a1a2e]/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-[#b11226]/20 p-8">
-            <div className="flex items-start justify-between mb-8">
-              <div>
+              {adminNotes && (
+                <div className="mb-6 bg-[#b11226]/10 border border-[#b11226]/40 text-[#f7c0c7] rounded-xl px-4 py-3">
+                  <p className="text-xs uppercase tracking-wide text-[#f7c0c7]/80 mb-1">Admin note</p>
+                  <p className="text-sm text-[#f7c0c7]">{adminNotes}</p>
+                </div>
+              )}
+              <div className="flex items-start justify-between mb-8">
+                <div>
                 <p className="flex items-center gap-2 text-sm text-[#f06575] mb-3">
                   <ArrowLeft size={16} />
                   <button

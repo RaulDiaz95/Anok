@@ -38,12 +38,14 @@ public class EventService {
     private final UserRepository userRepository;
     private final VenueRepository venueRepository;
     private final S3Service s3Service;
+    private final NotificationService notificationService;
 
-    public EventService(EventRepository eventRepository, UserRepository userRepository, VenueRepository venueRepository, S3Service s3Service) {
+    public EventService(EventRepository eventRepository, UserRepository userRepository, VenueRepository venueRepository, S3Service s3Service, NotificationService notificationService) {
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
         this.venueRepository = venueRepository;
         this.s3Service = s3Service;
+        this.notificationService = notificationService;
     }
 
     @Transactional
@@ -58,6 +60,12 @@ public class EventService {
         event.setLive(false);
 
         Event saved = eventRepository.save(event);
+        notificationService.notifyUsersByRoles(
+                java.util.List.of("ROLE_SUPERUSER", "ROLE_ADMIN"),
+                "New event pending review",
+                "A new event is awaiting admin review: " + saved.getTitle(),
+                com.anok.model.NotificationType.ADMIN_ALERT
+        );
         return toResponse(saved);
     }
 
@@ -131,9 +139,15 @@ public class EventService {
         return response;
     }
 
-    public EventResponse getEvent(UUID id) {
+    public EventResponse getEvent(UUID id, String viewerEmail) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        if (viewerEmail != null && event.getOwner() != null &&
+                viewerEmail.equalsIgnoreCase(event.getOwner().getEmailNormalized())) {
+            EventResponse response = toResponsePublic(event);
+            response.setAdminNotes(event.getAdminNotes());
+            return response;
+        }
         return toResponse(event);
     }
 
@@ -176,6 +190,14 @@ public class EventService {
             venueRepository.incrementUsage(event.getSelectedVenue().getId());
         }
         Event saved = eventRepository.save(event);
+        if (event.getOwner() != null) {
+            notificationService.createNotification(
+                    event.getOwner().getId(),
+                    "Event approved",
+                    "Your event \"" + event.getTitle() + "\" was approved.",
+                    com.anok.model.NotificationType.EVENT_UPDATE
+            );
+        }
         return toResponseAdmin(saved);
     }
 
@@ -191,6 +213,39 @@ public class EventService {
         event.setDisabledAt(LocalDateTime.now());
         event.setDisabledBy(resolveAdminId(adminEmail));
         Event saved = eventRepository.save(event);
+        if (event.getOwner() != null) {
+            notificationService.createNotification(
+                    event.getOwner().getId(),
+                    "Event disabled",
+                    "Your event \"" + event.getTitle() + "\" was disabled by an admin.",
+                    com.anok.model.NotificationType.WARNING,
+                    "/events/" + event.getId() + "/edit"
+            );
+        }
+        return toResponseAdmin(saved);
+    }
+
+    @Transactional
+    public EventResponse reject(UUID id, String adminEmail) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        if (event.getStatus() == EventStatus.DELETED) {
+            throw new ValidationException("Event has been deleted");
+        }
+        event.setStatus(EventStatus.DISABLED);
+        event.setLive(false);
+        event.setDisabledAt(LocalDateTime.now());
+        event.setDisabledBy(resolveAdminId(adminEmail));
+        Event saved = eventRepository.save(event);
+        if (event.getOwner() != null) {
+            notificationService.createNotification(
+                    event.getOwner().getId(),
+                    "Event rejected",
+                    "Your event \"" + event.getTitle() + "\" was rejected by an admin.",
+                    com.anok.model.NotificationType.WARNING,
+                    "/events/" + event.getId() + "/edit"
+            );
+        }
         return toResponseAdmin(saved);
     }
 
@@ -203,6 +258,14 @@ public class EventService {
         event.setDeletedAt(LocalDateTime.now());
         event.setDeletedBy(resolveAdminId(adminEmail));
         Event saved = eventRepository.save(event);
+        if (event.getOwner() != null) {
+            notificationService.createNotification(
+                    event.getOwner().getId(),
+                    "Event deleted",
+                    "Your event \"" + event.getTitle() + "\" was deleted by an admin.",
+                    com.anok.model.NotificationType.WARNING
+            );
+        }
         return toResponseAdmin(saved);
     }
 
@@ -223,6 +286,18 @@ public class EventService {
         event.setDisabledAt(LocalDateTime.now());
         event.setDisabledBy(resolveAdminId(adminEmail));
         Event saved = eventRepository.save(event);
+        if (event.getOwner() != null) {
+            String message = trimmedNotes != null
+                    ? trimmedNotes
+                    : "An admin requested changes for your event \"" + event.getTitle() + "\".";
+            notificationService.createNotification(
+                    event.getOwner().getId(),
+                    "Changes requested on your event",
+                    message,
+                    com.anok.model.NotificationType.EVENT_UPDATE,
+                    "/events/" + event.getId() + "/edit"
+            );
+        }
         return toResponseAdmin(saved);
     }
 

@@ -61,20 +61,20 @@ public class SampleEventSeeder implements CommandLineRunner {
         createTodayUpcomingEvent(demoOwner);
 
         // USE CASE 2: Already approved events (for infinite scroll testing)
-        // Page size is 20, so 35 events = 2 full pages (20 + 15)
-        System.out.println("✓ Creating 35 approved events for infinite scroll testing");
-        for (int i = 1; i <= 35; i++) {
+        // Page size is 20, so 25 events = 1 full page (20 + 5)
+        System.out.println("✓ Creating 25 approved events for infinite scroll testing");
+        for (int i = 1; i <= 25; i++) {
             createEvent(i, demoOwner, EventStatus.APPROVED, true, 2040);
         }
 
         // USE CASE 3: Events that need approval (for admin review testing)
-        System.out.println("✓ Creating 10 pending events for admin approval testing");
-        for (int i = 36; i <= 45; i++) {
+        System.out.println("✓ Creating 20 pending events for admin approval testing");
+        for (int i = 26; i <= 45; i++) {
             createEvent(i, raulOwner, EventStatus.PENDING_REVIEW, false, 2040);
         }
 
         System.out.println("========================================");
-        System.out.println("Total events seeded: 48 (3 today variants + 35 approved + 10 pending)");
+        System.out.println("Total events seeded: 48 (3 today variants + 25 approved + 20 pending)");
         System.out.println("========================================");
     }
 
@@ -355,3 +355,4 @@ public class SampleEventSeeder implements CommandLineRunner {
         return String.format("https://picsum.photos/seed/anok-%d/400/600", index);
     }
 }
+

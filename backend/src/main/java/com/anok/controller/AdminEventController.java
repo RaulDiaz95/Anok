@@ -62,6 +62,11 @@ public class AdminEventController {
         return ResponseEntity.ok(eventService.disable(id, authentication.getName()));
     }
 
+    @PatchMapping("/{id}/reject")
+    public ResponseEntity<EventResponse> reject(@PathVariable UUID id, Authentication authentication) {
+        return ResponseEntity.ok(eventService.reject(id, authentication.getName()));
+    }
+
     @PatchMapping("/{id}/delete")
     public ResponseEntity<EventResponse> delete(@PathVariable UUID id, Authentication authentication) {
         return ResponseEntity.ok(eventService.delete(id, authentication.getName()));
