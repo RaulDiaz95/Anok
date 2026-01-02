@@ -18,7 +18,6 @@ public class EventTimingValidator implements ConstraintValidator<EventTimingVali
         LocalDate date = request.getEventDate();
         LocalTime start = request.getStartTime();
         Integer length = request.getEventLengthHours();
-        LocalTime end = request.getEndTime();
 
         boolean valid = true;
         context.disableDefaultConstraintViolation();
@@ -39,18 +38,6 @@ public class EventTimingValidator implements ConstraintValidator<EventTimingVali
             if (date.isEqual(LocalDate.now()) && start.isBefore(LocalTime.now())) {
                 context.buildConstraintViolationWithTemplate("Start time cannot be earlier than current time")
                         .addPropertyNode("startTime").addConstraintViolation();
-                valid = false;
-            }
-        }
-
-        if (start != null) {
-            LocalTime computedEnd = end;
-            if (computedEnd == null && length != null) {
-                computedEnd = start.plusHours(length);
-            }
-            if (computedEnd != null && computedEnd.isBefore(start)) {
-                context.buildConstraintViolationWithTemplate("Invalid time range")
-                        .addPropertyNode("endTime").addConstraintViolation();
                 valid = false;
             }
         }

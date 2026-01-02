@@ -1,4 +1,5 @@
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
 import { Event } from "../types/event";
 
 type Props = {
@@ -74,7 +75,12 @@ export default function AdminEventTable({
                 )}
               </td>
               <td className="px-4 py-3 font-semibold text-white">
-                <div>{event.title}</div>
+                <Link
+                  to={`/events/${event.id}`}
+                  className="hover:underline text-white"
+                >
+                  {event.title}
+                </Link>
                 {event.venueCity && (
                   <div className="text-xs text-gray-400">{event.venueCity}</div>
                 )}

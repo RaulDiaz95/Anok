@@ -29,7 +29,7 @@ export default function CreateEvent() {
   const [title, setTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [startTime, setStartTime] = useState("");
-  const [eventLengthHours, setEventLengthHours] = useState<number>(1);
+  const [eventLengthHours, setEventLengthHours] = useState("");
   const [flyerPreview, setFlyerPreview] = useState("");
   const [flyerUrl, setFlyerUrl] = useState("");
   const [isLive, setIsLive] = useState(false);
@@ -185,7 +185,9 @@ export default function CreateEvent() {
         setTitle(data.title || "");
         setEventDate(data.eventDate || "");
         setStartTime(toTimeInput(data.startTime));
-        setEventLengthHours(data.eventLengthHours ?? 0);
+        setEventLengthHours(
+          typeof data.eventLengthHours === "number" ? String(data.eventLengthHours) : ""
+        );
         setFlyerUrl(data.flyerUrl || "");
         setFlyerPreview(data.flyerUrl || "");
         setIsLive(Boolean(data.isLive));
@@ -226,7 +228,6 @@ export default function CreateEvent() {
     const errors: Record<string, string> = {};
     const hints: string[] = [];
     const trimmedTitle = title.trim();
-    const trimmedAbout = about.trim();
     const trimmedVenueName = venueName.trim();
     const trimmedVenueAddress = venueAddress.trim();
     const trimmedCity = venueCity.trim();
@@ -240,13 +241,6 @@ export default function CreateEvent() {
     } else if (trimmedTitle.length < 3 || trimmedTitle.length > 100) {
       errors.title = "Title must be 3-100 characters";
       hints.push("Title must be 3-100 characters");
-    }
-    if (!trimmedAbout) {
-      errors.about = "Description is required";
-      hints.push("Description (10-2000 chars)");
-    } else if (trimmedAbout.length < 10 || trimmedAbout.length > 2000) {
-      errors.about = "Description must be 10-2000 characters";
-      hints.push("Description must be 10-2000 characters");
     }
     if (!eventDate) {
       errors.eventDate = "Event date is required";
@@ -279,12 +273,15 @@ export default function CreateEvent() {
         }
       }
     }
-    if (!eventLengthHours || Number.isNaN(eventLengthHours)) {
-      errors.eventLengthHours = "Length is required";
-      hints.push("Event length (>= 1 hour)");
-    } else if (eventLengthHours < 1) {
-      errors.eventLengthHours = "Event must last at least 1 hour";
-      hints.push("Event must last at least 1 hour");
+    if (eventLengthHours) {
+      const parsedLength = Number(eventLengthHours);
+      if (Number.isNaN(parsedLength)) {
+        errors.eventLengthHours = "Length must be a number";
+        hints.push("Event length (>= 1 hour)");
+      } else if (parsedLength < 1) {
+        errors.eventLengthHours = "Event must last at least 1 hour";
+        hints.push("Event must last at least 1 hour");
+      }
     }
     if (!usingExistingVenue) {
       if (!trimmedVenueName) {
@@ -332,7 +329,6 @@ export default function CreateEvent() {
     return { errors, hints };
   }, [
     title,
-    about,
     eventDate,
     startTime,
     eventLengthHours,
@@ -388,7 +384,7 @@ export default function CreateEvent() {
 
   const handleEventLengthChange = (value: string) => {
     const digits = value.replace(/\D/g, "");
-    setEventLengthHours(digits ? Math.max(1, parseInt(digits, 10)) : 0);
+    setEventLengthHours(digits);
   };
 
   const handleCapacityChange = (value: string) => {
@@ -486,7 +482,7 @@ export default function CreateEvent() {
           flyerUrl: flyerUrl || null,
           eventDate,
           startTime,
-          eventLengthHours: Number(eventLengthHours),
+          eventLengthHours: eventLengthHours ? Number(eventLengthHours) : null,
           isLive: false,
           selectedVenueId: usingExistingVenue ? selectedVenueId : null,
           venueName: venueName.trim(),
@@ -495,7 +491,7 @@ export default function CreateEvent() {
           venueState: venueState.trim(),
           venueCountry: venueCountry.trim(),
           venueCity: venueCity.trim(),
-          about: about.trim(),
+          about: about.trim() || null,
           capacity,
           allAges,
           alcohol,
@@ -716,9 +712,9 @@ export default function CreateEvent() {
                       inputMode="numeric"
                       value={eventLengthHours}
                       onChange={(e) => handleEventLengthChange(e.target.value)}
-                      required
                       aria-invalid={Boolean(fieldErrors.eventLengthHours)}
                       className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                      placeholder="Optional"
                     />
                     {hasSubmitted && fieldErrors.eventLengthHours && (
                       <p className="text-xs text-red-400 mt-1">{fieldErrors.eventLengthHours}</p>
@@ -1139,15 +1135,14 @@ export default function CreateEvent() {
                   </section>
 
                   <section className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
-                    <h2 className="text-lg font-semibold text-white">About the Event</h2>
+                    <h2 className="text-lg font-semibold text-white">Event Genre</h2>
                     <textarea
                       value={about}
                       onChange={(e) => setAbout(e.target.value)}
                       rows={4}
-                      required
                       aria-invalid={Boolean(fieldErrors.about)}
                       className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                      placeholder="Tell attendees about the event..."
+                      placeholder="Optional - share the event genre or vibe..."
                     />
                     {hasSubmitted && fieldErrors.about && (
                       <p className="text-xs text-red-400 mt-1">{fieldErrors.about}</p>

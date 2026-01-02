@@ -234,11 +234,12 @@ public class EventService {
         }
 
         event.setTitle(request.getTitle().trim());
-        event.setDescription(request.getAbout().trim());
-        event.setAbout(request.getAbout().trim());
+        String trimmedAbout = request.getAbout() == null ? "" : request.getAbout().trim();
+        event.setDescription(trimmedAbout);
+        event.setAbout(trimmedAbout);
         event.setEventDate(request.getEventDate());
         event.setStartTime(request.getStartTime());
-        event.setEventLengthHours(request.getEventLengthHours());
+        event.setEventLengthHours(request.getEventLengthHours() == null ? 0 : request.getEventLengthHours());
         event.setEndTime(computedEndTime);
         event.setEventDateTime(request.getEventDate().atTime(request.getStartTime()));
         String flyer = request.getFlyerUrl();
@@ -371,9 +372,6 @@ public class EventService {
         }
         if (request.getTitle() != null && request.getTitle().trim().isEmpty()) {
             throw new ValidationException("title", "Title cannot be empty");
-        }
-        if (request.getAbout() != null && request.getAbout().trim().isEmpty()) {
-            throw new ValidationException("about", "Description cannot be empty");
         }
         if (request.getEventDate() != null && request.getEventDate().isBefore(LocalDate.now())) {
             throw new ValidationException("Event date cannot be in the past");

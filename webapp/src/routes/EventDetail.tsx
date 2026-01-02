@@ -182,7 +182,8 @@ export default function EventDetail() {
                     <div>
                       <p className="text-xs text-gray-400">Time</p>
                       <p className="font-semibold text-white">
-                        {timeRange || "Time to be confirmed"} ({event.eventLengthHours}h)
+                        {timeRange || "Time to be confirmed"}
+                        {event.eventLengthHours ? ` (${event.eventLengthHours}h)` : ""}
                       </p>
                     </div>
                   </div>
@@ -225,7 +226,7 @@ export default function EventDetail() {
 
               {event.about && (
                 <div className="space-y-2">
-                  <h2 className="text-xl font-semibold">About</h2>
+                  <h2 className="text-xl font-semibold">Event Genre</h2>
                   <p className="text-gray-200 leading-relaxed max-w-3xl">{event.about}</p>
                 </div>
               )}
