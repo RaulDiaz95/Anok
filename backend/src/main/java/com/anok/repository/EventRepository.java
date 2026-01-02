@@ -21,10 +21,10 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
     List<Event> findAllByEventDateTimeAfterOrderByEventDateTimeAsc(LocalDateTime cutoff);
 
     @EntityGraph(attributePaths = {"owner", "genres", "performers"})
-    List<Event> findAllByEventDateGreaterThanEqualAndIsLiveTrueOrderByEventDateTimeAsc(LocalDate cutoff);
+    List<Event> findAllByEventDateGreaterThanEqualAndStatusAndIsLiveTrueOrderByEventDateTimeAsc(LocalDate cutoff, EventStatus status);
 
     @EntityGraph(attributePaths = {"owner", "genres", "performers"})
-    Page<Event> findAllByEventDateGreaterThanEqualAndIsLiveTrueOrderByEventDateTimeAsc(LocalDate cutoff, Pageable pageable);
+    Page<Event> findAllByEventDateGreaterThanEqualAndStatusAndIsLiveTrueOrderByEventDateTimeAsc(LocalDate cutoff, EventStatus status, Pageable pageable);
 
     @EntityGraph(attributePaths = {"owner", "genres", "performers"})
     List<Event> findAllByOrderByEventDateTimeAsc();
@@ -40,6 +40,9 @@ public interface EventRepository extends JpaRepository<Event, UUID> {
 
     @EntityGraph(attributePaths = {"owner", "genres", "performers"})
     List<Event> findAllByStatusOrderByCreatedAtAsc(EventStatus status);
+
+    @EntityGraph(attributePaths = {"owner", "genres", "performers"})
+    List<Event> findAllByOrderByCreatedAtDesc();
 
     @EntityGraph(attributePaths = {"owner", "genres", "performers"})
     List<Event> findAllBySelectedVenue_IdAndStatusAndEventDateAfterOrderByEventDateAsc(UUID venueId, EventStatus status, LocalDate date);

@@ -14,6 +14,7 @@ import { eventService } from "../services/eventService";
 import { useVenueSearch } from "../hooks/useVenueSearch";
 import { useAuth } from "../contexts/AuthContext";
 import Navbar from "../components/NavBar";
+import PageContainer from "../components/PageContainer";
 import { PerformerInput } from "../types/event";
 import { FlyerFrame } from "../components/FlyerFrame";
 import { ALLOWED_GENRES } from "../constants/genres";
@@ -543,13 +544,14 @@ export default function CreateEvent() {
     <>
       <Navbar />
       <div className="min-h-screen bg-gradient-to-br from-[#0f0f1a] via-[#1a1a2e] to-[#0f0f1a] flex items-center justify-center px-4 pt-28 pb-12">
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.5 }}
-          className="w-full max-w-5xl"
-        >
-          <div className="bg-[#1a1a2e]/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-[#b11226]/20 p-8">
+        <PageContainer>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.5 }}
+            className="w-full"
+          >
+            <div className="bg-[#1a1a2e]/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-[#b11226]/20 p-8">
             <div className="flex items-start justify-between mb-8">
               <div>
                 <p className="flex items-center gap-2 text-sm text-[#f06575] mb-3">
@@ -1279,8 +1281,9 @@ export default function CreateEvent() {
                 </button>
               </div>
             </form>
-          </div>
-        </motion.div>
+            </div>
+          </motion.div>
+        </PageContainer>
       </div>
     </>
   );

@@ -3,6 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { adminEventService } from "../services/adminEventService";
 import { Event } from "../types/event";
 import { AdminEventCard } from "../components/AdminEventCard";
+import PageContainer from "../components/PageContainer";
 import { useAuth } from "../contexts/AuthContext";
 
 type Props = {
@@ -17,7 +18,11 @@ export default function AdminReviewEvents({ embedded = false }: Props) {
   const [error, setError] = useState("");
 
   useEffect(() => {
-    if (!isLoading && (!user || !user.roles?.includes("ROLE_SUPERUSER"))) {
+    if (
+      !isLoading &&
+      (!user ||
+        !(user.roles?.includes("ROLE_ADMIN") || user.roles?.includes("ROLE_SUPERUSER")))
+    ) {
       navigate("/login");
     }
   }, [isLoading, user, navigate]);
@@ -40,17 +45,31 @@ export default function AdminReviewEvents({ embedded = false }: Props) {
 
   return (
     <div className={`${embedded ? "" : "min-h-screen bg-gradient-to-b from-[#0f0f1a] via-[#12121c] to-black text-white pt-28 pb-10 px-4"}`}>
-      <div className={`${embedded ? "text-white space-y-4" : "max-w-6xl mx-auto space-y-4"}`}>
-        <h1 className="text-3xl font-bold">Pending Events</h1>
-        {loading && <p className="text-gray-400">Loading...</p>}
-        {error && <p className="text-red-400">{error}</p>}
-        {!loading && events.length === 0 && <p className="text-gray-400">No pending events.</p>}
-        <div className="grid gap-4 md:grid-cols-2">
-          {events.map((e) => (
-            <AdminEventCard key={e.id} event={e} onReview={(id) => navigate(embedded ? `/dashboard/admin/review-events/${id}` : `/admin/review-events/${id}`)} />
-          ))}
+      {embedded ? (
+        <div className="text-white space-y-4">
+          <h1 className="text-3xl font-bold">Pending Events</h1>
+          {loading && <p className="text-gray-400">Loading...</p>}
+          {error && <p className="text-red-400">{error}</p>}
+          {!loading && events.length === 0 && <p className="text-gray-400">No pending events.</p>}
+          <div className="grid gap-4 md:grid-cols-2">
+            {events.map((e) => (
+              <AdminEventCard key={e.id} event={e} onReview={(id) => navigate(embedded ? `/dashboard/admin/review-events/${id}` : `/admin/review-events/${id}`)} />
+            ))}
+          </div>
         </div>
-      </div>
+      ) : (
+        <PageContainer className="space-y-4">
+          <h1 className="text-3xl font-bold">Pending Events</h1>
+          {loading && <p className="text-gray-400">Loading...</p>}
+          {error && <p className="text-red-400">{error}</p>}
+          {!loading && events.length === 0 && <p className="text-gray-400">No pending events.</p>}
+          <div className="grid gap-4 md:grid-cols-2">
+            {events.map((e) => (
+              <AdminEventCard key={e.id} event={e} onReview={(id) => navigate(embedded ? `/dashboard/admin/review-events/${id}` : `/admin/review-events/${id}`)} />
+            ))}
+          </div>
+        </PageContainer>
+      )}
     </div>
   );
 }

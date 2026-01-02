@@ -4,6 +4,7 @@ import { useNavigate } from "react-router-dom";
 import { LogOut, User } from "lucide-react";
 import { useAuth } from "../contexts/AuthContext";
 import { AnokBrand } from "./AnokBrand";
+import PageContainer from "./PageContainer";
 
 export default function Navbar() {
   const [scrolled, setScrolled] = useState(false);
@@ -45,7 +46,7 @@ export default function Navbar() {
         scrolled ? "bg-[#0f0f1a]/90 backdrop-blur-md shadow-lg" : "bg-transparent"
       }`}
     >
-      <div className="max-w-7xl mx-auto flex items-center justify-between px-6 md:px-12 py-4 text-white">
+      <PageContainer className="flex items-center justify-between py-4 text-white">
         <AnokBrand />
 
         <div className="flex items-center gap-6">
@@ -104,7 +105,7 @@ export default function Navbar() {
             â˜°
           </button>
         </div>
-      </div>
+      </PageContainer>
 
       {menuOpen && (
         <div className="md:hidden bg-[#0f0f1a]/95 backdrop-blur-lg border-t border-[#b11226]/20">

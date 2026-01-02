@@ -7,6 +7,9 @@ import Events from "./Events";
 import ScrollToTop from "../components/ScrollToTop";
 import AdminReviewEvents from "./AdminReviewEvents";
 import AdminReviewEventDetail from "./AdminReviewEventDetail";
+import AdminLayout from "./admin/AdminLayout";
+import AdminOverview from "./admin/AdminOverview";
+import AdminEventsPage from "./admin/AdminEventsPage";
 import VenueInsights from "./admin/VenueInsights";
 import VenuePage from "./venue/VenuePage";
 import UserDashboardLayout from "./dashboard/UserDashboardLayout";
@@ -30,6 +33,14 @@ export default function AppRoutes() {
         <Route path="/events/:id/edit" element={<CreateEvent />} />
         <Route path="/venue/:id" element={<VenuePage />} />
         <Route path="/events/mine" element={<Navigate to="/dashboard/events" replace />} />
+        <Route path="/admin" element={<AdminLayout />}>
+          <Route index element={<AdminOverview />} />
+          <Route path="events" element={<AdminEventsPage mode="all" />} />
+          <Route path="events/pending" element={<AdminEventsPage mode="pending" />} />
+          <Route path="events/live" element={<AdminEventsPage mode="live" />} />
+          <Route path="events/disabled" element={<AdminEventsPage mode="disabled" />} />
+          <Route path="events/deleted" element={<AdminEventsPage mode="deleted" />} />
+        </Route>
         <Route path="/dashboard" element={<UserDashboardLayout />}>
           <Route index element={<Navigate to="events" replace />} />
           <Route path="events" element={<MyEvents embedded />} />

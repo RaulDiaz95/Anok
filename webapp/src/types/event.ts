@@ -1,4 +1,4 @@
-export type EventStatus = "DRAFT" | "PENDING_REVIEW" | "APPROVED" | "REJECTED" | "LIVE";
+export type EventStatus = "DRAFT" | "PENDING_REVIEW" | "APPROVED" | "DISABLED" | "DELETED";
 
 export interface Performer {
   id?: string;
@@ -43,6 +43,9 @@ export interface Event {
   performers: Performer[];
   ownerId?: string | null;
   ownerName?: string | null;
+  ownerEmail?: string | null;
+  submittedByUser?: string | null;
+  adminNotes?: string | null;
   selectedVenueId?: string | null;
 }
 

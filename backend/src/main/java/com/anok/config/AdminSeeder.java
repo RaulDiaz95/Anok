@@ -10,7 +10,7 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Component;
 
 @Component
-@Order(1) // Run first to ensure ROLE_SUPERUSER exists
+@Order(1) // Run first to ensure ROLE_ADMIN exists
 public class AdminSeeder implements CommandLineRunner {
 
     private final UserRepository userRepository;
@@ -25,16 +25,19 @@ public class AdminSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
-        Role superuserRole = roleRepository.findByName("ROLE_SUPERUSER")
-                .orElseGet(() -> roleRepository.save(new Role("ROLE_SUPERUSER", "Superuser with moderation access")));
+        Role adminRole = roleRepository.findByName("ROLE_ADMIN")
+                .orElseGet(() -> roleRepository.save(new Role("ROLE_ADMIN", "Administrator with moderation access")));
 
-        userRepository.findByEmailNormalized("admin@anok.com").orElseGet(() -> {
-            User admin = new User();
-            admin.setEmail("admin@anok.com");
-            admin.setPasswordHash(passwordEncoder.encode("oefkr!*ecdhq!xQa3rH."));
-            admin.addRole(superuserRole);
-            admin.setIsActive(true);
-            return userRepository.save(admin);
+        User admin = userRepository.findByEmailNormalized("admin@anok.com").orElseGet(() -> {
+            User newAdmin = new User();
+            newAdmin.setEmail("admin@anok.com");
+            newAdmin.setPasswordHash(passwordEncoder.encode("oefkr!*ecdhq!xQa3rH."));
+            newAdmin.setIsActive(true);
+            return userRepository.save(newAdmin);
         });
+        if (!admin.getRoles().contains(adminRole)) {
+            admin.addRole(adminRole);
+            userRepository.save(admin);
+        }
     }
 }

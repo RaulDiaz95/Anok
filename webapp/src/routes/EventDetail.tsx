@@ -6,6 +6,7 @@ import Navbar from "../components/NavBar";
 import { FlyerFrame } from "../components/FlyerFrame";
 import { AnimatedLoader } from "../components/AnimatedLoader";
 import { eventService } from "../services/eventService";
+import PageContainer from "../components/PageContainer";
 import { Event } from "../types/event";
 
 const formatDate = (event?: Event | null) => {
@@ -120,13 +121,19 @@ export default function EventDetail() {
     <>
       <Navbar />
       <div className="min-h-screen bg-gradient-to-b from-[#0f0f1a] via-[#12121c] to-black text-white pt-28 pb-16 fade-in-up">
-        <div className="max-w-6xl mx-auto px-4 space-y-8">
+        <PageContainer className="space-y-8">
           <button
             onClick={() => navigate(-1)}
             className="text-sm text-gray-300 hover:text-white transition flex items-center gap-2"
           >
             <span className="text-lg">&#8592;</span> Back to Events
           </button>
+
+          {event.status === "DISABLED" && (
+            <div className="bg-red-500/10 border border-red-500/40 text-red-200 rounded-xl px-4 py-3">
+              Disabled by Admin - Please Update and Resubmit
+            </div>
+          )}
 
           <div className="grid lg:grid-cols-[1.1fr_1.2fr] gap-8 bg-white/5 border border-white/10 rounded-2xl p-6 shadow-2xl">
             <div className="flex flex-col gap-4">
@@ -219,7 +226,7 @@ export default function EventDetail() {
               {event.about && (
                 <div className="space-y-2">
                   <h2 className="text-xl font-semibold">About</h2>
-                  <p className="text-gray-200 leading-relaxed">{event.about}</p>
+                  <p className="text-gray-200 leading-relaxed max-w-3xl">{event.about}</p>
                 </div>
               )}
 
@@ -264,7 +271,7 @@ export default function EventDetail() {
               )}
             </div>
           </div>
-        </div>
+        </PageContainer>
       </div>
     </>
   );

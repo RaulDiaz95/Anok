@@ -3,9 +3,9 @@ import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { CheckCircle2, Loader2, MapPin, ShieldCheck, TrendingUp, AlertTriangle } from "lucide-react";
-import Navbar from "../../components/NavBar";
 import { useAuth } from "../../contexts/AuthContext";
 import { buildApiUrl } from "../../config/env";
+import PageContainer from "../../components/PageContainer";
 
 type VenueInsightItem = {
   id: string;
@@ -132,125 +132,120 @@ export default function VenueInsights() {
     return <div className="min-h-screen flex items-center justify-center text-white">Checking session...</div>;
   }
 
-  if (!user?.roles?.includes("ROLE_SUPERUSER")) {
+  if (!(user?.roles?.includes("ROLE_ADMIN") || user?.roles?.includes("ROLE_SUPERUSER"))) {
     navigate("/login");
     return null;
   }
 
   return (
-    <>
-      <Navbar />
-      <div className="min-h-screen bg-gradient-to-b from-[#0f0f1a] via-[#12121c] to-black text-white pt-24 pb-12 px-4">
-        <div className="max-w-6xl mx-auto space-y-6">
+    <PageContainer className="space-y-6">
+      <div className="flex items-center justify-between">
+        <div>
+          <h1 className="text-3xl font-bold mb-1">Venue Insights</h1>
+          <p className="text-gray-400 text-sm">Monitor venue quality, usage, and verification.</p>
+        </div>
+        {(isInsightsLoading || verifyMutation.isPending) && (
+          <div className="flex items-center gap-2 text-gray-300 text-sm">
+            <Loader2 className="animate-spin" size={16} />
+            Refreshing...
+          </div>
+        )}
+      </div>
+
+      {error && (
+        <div className="bg-red-500/10 border border-red-500/40 text-red-200 rounded-lg px-4 py-3">
+          {(error as Error).message}
+        </div>
+      )}
+
+      <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
+        {statItems.map((item) => (
+          <StatCard key={item.label} label={item.label} value={item.value} />
+        ))}
+      </div>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3 backdrop-blur-md shadow-lg">
           <div className="flex items-center justify-between">
-            <div>
-              <h1 className="text-3xl font-bold mb-1">Venue Insights</h1>
-              <p className="text-gray-400 text-sm">Monitor venue quality, usage, and verification.</p>
-            </div>
-            {(isInsightsLoading || verifyMutation.isPending) && (
-              <div className="flex items-center gap-2 text-gray-300 text-sm">
-                <Loader2 className="animate-spin" size={16} />
-                Refreshing...
-              </div>
+            <h2 className="text-lg font-semibold">Top Venues</h2>
+            <TrendingUp size={16} className="text-[#f25f6b]" />
+          </div>
+          <div className="space-y-2">
+            {isInsightsLoading ? (
+              <Loader2 className="animate-spin text-gray-300" />
+            ) : topVenues.length ? (
+              topVenues.map((v) => <VenueCard key={v.id} venue={v} />)
+            ) : (
+              <p className="text-sm text-gray-400">No venues yet.</p>
             )}
           </div>
+        </div>
 
-          {error && (
-            <div className="bg-red-500/10 border border-red-500/40 text-red-200 rounded-lg px-4 py-3">
-              {(error as Error).message}
-            </div>
-          )}
-
-          <div className="grid sm:grid-cols-2 lg:grid-cols-4 gap-3">
-            {statItems.map((item) => (
-              <StatCard key={item.label} label={item.label} value={item.value} />
-            ))}
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3 backdrop-blur-md shadow-lg">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Recent Venues</h2>
+            <MapPin size={16} className="text-[#f25f6b]" />
           </div>
-
-          <div className="grid lg:grid-cols-2 gap-4">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3 backdrop-blur-md shadow-lg">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Top Venues</h2>
-                <TrendingUp size={16} className="text-[#f25f6b]" />
-              </div>
-              <div className="space-y-2">
-                {isInsightsLoading ? (
-                  <Loader2 className="animate-spin text-gray-300" />
-                ) : topVenues.length ? (
-                  topVenues.map((v) => <VenueCard key={v.id} venue={v} />)
-                ) : (
-                  <p className="text-sm text-gray-400">No venues yet.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3 backdrop-blur-md shadow-lg">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Recent Venues</h2>
-                <MapPin size={16} className="text-[#f25f6b]" />
-              </div>
-              <div className="space-y-2">
-                {isInsightsLoading ? (
-                  <Loader2 className="animate-spin text-gray-300" />
-                ) : recentVenues.length ? (
-                  recentVenues.map((v) => <VenueCard key={v.id} venue={v} />)
-                ) : (
-                  <p className="text-sm text-gray-400">No venues yet.</p>
-                )}
-              </div>
-            </div>
-          </div>
-
-          <div className="grid lg:grid-cols-2 gap-4">
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3 backdrop-blur-md shadow-lg">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Needs Verification</h2>
-                <AlertTriangle size={16} className="text-yellow-400" />
-              </div>
-              <div className="space-y-2">
-                {isInsightsLoading ? (
-                  <Loader2 className="animate-spin text-gray-300" />
-                ) : needsVerification.length ? (
-                  needsVerification.map((v) => (
-                    <VenueCard
-                      key={v.id}
-                      venue={v}
-                      action={
-                        <button
-                          onClick={() => handleVerify(v.id)}
-                          className="px-3 py-1.5 rounded-lg bg-[#b11226] text-white text-xs hover:bg-[#d31a33] transition flex items-center gap-1"
-                          disabled={verifyMutation.isPending}
-                        >
-                          {verifyMutation.isPending ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle2 size={14} />}
-                          Verify
-                        </button>
-                      }
-                    />
-                  ))
-                ) : (
-                  <p className="text-sm text-gray-400">No venues need verification.</p>
-                )}
-              </div>
-            </div>
-
-            <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3 backdrop-blur-md shadow-lg">
-              <div className="flex items-center justify-between">
-                <h2 className="text-lg font-semibold">Used in last 30 days</h2>
-                <ShieldCheck size={16} className="text-green-400" />
-              </div>
-              <div className="space-y-2">
-                {isInsightsLoading ? (
-                  <Loader2 className="animate-spin text-gray-300" />
-                ) : usedLast30Days.length ? (
-                  usedLast30Days.map((v) => <VenueCard key={v.id} venue={v} />)
-                ) : (
-                  <p className="text-sm text-gray-400">No usage in the last 30 days.</p>
-                )}
-              </div>
-            </div>
+          <div className="space-y-2">
+            {isInsightsLoading ? (
+              <Loader2 className="animate-spin text-gray-300" />
+            ) : recentVenues.length ? (
+              recentVenues.map((v) => <VenueCard key={v.id} venue={v} />)
+            ) : (
+              <p className="text-sm text-gray-400">No venues yet.</p>
+            )}
           </div>
         </div>
       </div>
-    </>
+
+      <div className="grid lg:grid-cols-2 gap-4">
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3 backdrop-blur-md shadow-lg">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Needs Verification</h2>
+            <AlertTriangle size={16} className="text-yellow-400" />
+          </div>
+          <div className="space-y-2">
+            {isInsightsLoading ? (
+              <Loader2 className="animate-spin text-gray-300" />
+            ) : needsVerification.length ? (
+              needsVerification.map((v) => (
+                <VenueCard
+                  key={v.id}
+                  venue={v}
+                  action={
+                    <button
+                      onClick={() => handleVerify(v.id)}
+                      className="px-3 py-1.5 rounded-lg bg-[#b11226] text-white text-xs hover:bg-[#d31a33] transition flex items-center gap-1"
+                      disabled={verifyMutation.isPending}
+                    >
+                      {verifyMutation.isPending ? <Loader2 className="animate-spin" size={14} /> : <CheckCircle2 size={14} />}
+                      Verify
+                    </button>
+                  }
+                />
+              ))
+            ) : (
+              <p className="text-sm text-gray-400">No venues need verification.</p>
+            )}
+          </div>
+        </div>
+
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-3 backdrop-blur-md shadow-lg">
+          <div className="flex items-center justify-between">
+            <h2 className="text-lg font-semibold">Used in last 30 days</h2>
+            <ShieldCheck size={16} className="text-green-400" />
+          </div>
+          <div className="space-y-2">
+            {isInsightsLoading ? (
+              <Loader2 className="animate-spin text-gray-300" />
+            ) : usedLast30Days.length ? (
+              usedLast30Days.map((v) => <VenueCard key={v.id} venue={v} />)
+            ) : (
+              <p className="text-sm text-gray-400">No usage in the last 30 days.</p>
+            )}
+          </div>
+        </div>
+      </div>
+    </PageContainer>
   );
 }

@@ -39,6 +39,9 @@ public class EventResponse {
     private List<PerformerResponse> performers = new ArrayList<>();
     private UUID ownerId;
     private String ownerName;
+    private String ownerEmail;
+    private String submittedByUser;
+    private String adminNotes;
 
     public UUID getId() {
         return id;
@@ -246,6 +249,30 @@ public class EventResponse {
 
     public void setOwnerName(String ownerName) {
         this.ownerName = ownerName;
+    }
+
+    public String getOwnerEmail() {
+        return ownerEmail;
+    }
+
+    public void setOwnerEmail(String ownerEmail) {
+        this.ownerEmail = ownerEmail;
+    }
+
+    public String getSubmittedByUser() {
+        return submittedByUser;
+    }
+
+    public void setSubmittedByUser(String submittedByUser) {
+        this.submittedByUser = submittedByUser;
+    }
+
+    public String getAdminNotes() {
+        return adminNotes;
+    }
+
+    public void setAdminNotes(String adminNotes) {
+        this.adminNotes = adminNotes;
     }
 
     public static class PerformerResponse {
