@@ -10,18 +10,9 @@ public final class GenreCatalog {
     static {
         Set<String> values = new LinkedHashSet<>();
         Collections.addAll(values,
-                "Pop", "Rock", "Hip-Hop", "Hip-Hop/Rap", "Rap", "Trap", "R&B", "R&B/Soul",
-                "Electronic", "House", "Techno", "EDM", "Dance", "Drum & Bass", "Dubstep",
-                "Trance", "Synthwave", "Ambient", "Experimental", "Industrial",
-                "Reggaeton", "Latin", "Salsa", "Cumbia", "Banda",
-                "K-pop", "J-pop",
-                "Jazz", "Blues", "Soul", "Funk",
-                "Classical", "Opera", "Chamber", "Symphonic",
-                "Indie", "Alternative", "Folk", "Acoustic",
-                "Metal", "Hard Rock", "Punk", "Emo", "Hardcore",
-                "Country", "Americana",
-                "World Music", "Afrobeats", "Dancehall", "Reggae",
-                "Lo-fi", "Chillout"
+                "Rock", "Pop", "Hip-Hop/Rap", "Classical", "Jazz",
+                "Electronic", "Country", "Blues", "Reggae", "Folk",
+                "R&B/Soul", "Gospel", "Funk", "World Music", "Opera"
         );
         GENRES = Collections.unmodifiableSet(values);
     }

@@ -14,7 +14,7 @@ import java.util.UUID;
 
 @RestController
 @RequestMapping("/admin/venues")
-@PreAuthorize("hasRole('SUPERUSER')")
+@PreAuthorize("hasAnyRole('ADMIN', 'SUPERUSER')")
 public class AdminVenueController {
 
     @Autowired

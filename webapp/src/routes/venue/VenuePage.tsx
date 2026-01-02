@@ -2,6 +2,7 @@ import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { motion, AnimatePresence } from "framer-motion";
 import Navbar from "../../components/NavBar";
+import PageContainer from "../../components/PageContainer";
 import { venueService, SimilarVenueResult, VenueSearchResult } from "../../services/venueService";
 import { useAuth } from "../../contexts/AuthContext";
 import { Loader2, CheckCircle2, MapPin } from "lucide-react";
@@ -99,7 +100,7 @@ export default function VenuePage() {
     <>
       <Navbar />
       <div className="min-h-screen bg-gradient-to-b from-[#0f0f1a] via-[#12121c] to-black text-white pt-20 pb-12">
-        <div className="max-w-6xl mx-auto px-4 space-y-6">
+        <PageContainer className="space-y-6">
           <div className="overflow-hidden rounded-2xl border border-white/10 bg-white/5 backdrop-blur-md shadow-xl">
             <AnimatePresence>
               {hero && (
@@ -137,7 +138,7 @@ export default function VenuePage() {
           {data.description && (
             <div className="bg-white/5 border border-white/10 rounded-xl p-4 space-y-2 backdrop-blur-md shadow-lg">
               <h2 className="text-lg font-semibold">About</h2>
-              <p className="text-gray-300 leading-relaxed">{data.description}</p>
+              <p className="text-gray-300 leading-relaxed max-w-3xl">{data.description}</p>
             </div>
           )}
 
@@ -298,7 +299,7 @@ export default function VenuePage() {
               </div>
             </div>
           )}
-        </div>
+        </PageContainer>
       </div>
     </>
   );

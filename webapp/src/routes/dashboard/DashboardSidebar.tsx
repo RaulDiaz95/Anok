@@ -17,9 +17,10 @@ export default function DashboardSidebar() {
       { to: "/dashboard/metrics", label: "Performance Metrics", icon: BarChart3 },
       { to: "/dashboard/support", label: "Support & Resources", icon: LifeBuoy },
     ];
-    if (user?.roles?.includes("ROLE_SUPERUSER")) {
-      items.splice(1, 0, { to: "/dashboard/admin/review-events", label: "Admin Review", icon: ShieldCheck });
-      items.splice(2, 0, { to: "/dashboard/admin/venues", label: "Venue Insights", icon: MapPin });
+    if (user?.roles?.includes("ROLE_ADMIN") || user?.roles?.includes("ROLE_SUPERUSER")) {
+      items.splice(1, 0, { to: "/admin", label: "Admin Panel", icon: ShieldCheck });
+      items.splice(2, 0, { to: "/dashboard/admin/review-events", label: "Approval Queue", icon: ShieldCheck });
+      items.splice(3, 0, { to: "/dashboard/admin/venues", label: "Venue Insights", icon: MapPin });
     }
     return items;
   }, [user]);

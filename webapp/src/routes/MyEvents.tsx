@@ -1,8 +1,9 @@
-import { useEffect, useMemo, useState } from "react";
+import { Fragment, useEffect, useMemo, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { format, parseISO } from "date-fns";
 import { Loader2, Pencil, RefreshCw, ToggleLeft, ToggleRight } from "lucide-react";
 import Navbar from "../components/NavBar";
+import PageContainer from "../components/PageContainer";
 import { eventService } from "../services/eventService";
 import { Event } from "../types/event";
 import { useAuth } from "../contexts/AuthContext";
@@ -90,8 +91,7 @@ export default function MyEvents({ embedded = false }: MyEventsProps) {
   };
 
   const hasEvents = useMemo(() => events.length > 0, [events]);
-  const canToggle = (event: Event) =>
-    event.status === "APPROVED" || event.status === "LIVE" || event.isLive;
+  const canToggle = (event: Event) => event.status === "APPROVED";
 
   const today = useMemo(() => {
     const d = new Date();
@@ -195,7 +195,7 @@ export default function MyEvents({ embedded = false }: MyEventsProps) {
     <>
       {!embedded && <Navbar />}
       <div className="min-h-full bg-gradient-to-b from-[#0f0f1a] via-[#12121c] to-black text-white fade-in-up">
-        <div className={`max-w-6xl mx-auto px-4 ${embedded ? "pt-10 pb-12" : "pt-28 pb-16"}`}>
+        <PageContainer className={`${embedded ? "pt-10 pb-12" : "pt-28 pb-16"}`}>
           <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 mb-10">
             <div>
               <h1 className="text-3xl font-bold mb-2">My Events</h1>
@@ -326,61 +326,70 @@ export default function MyEvents({ embedded = false }: MyEventsProps) {
                               </tr>
                             )}
                             {paged.map((event) => (
-                              <tr key={event.id} className="hover:bg-white/5 transition card-enter">
-                                <td className="px-4 py-3">
-                                  {event.flyerUrl ? (
-                                    <div className="w-16 h-20 md:w-20 md:h-24 rounded-lg overflow-hidden border border-white/10 bg-white/5">
-                                      <img
-                                        src={event.flyerUrl}
-                                        alt={`${event.title} flyer`}
-                                        className="w-full h-full object-cover"
-                                      />
-                                    </div>
-                                  ) : (
-                                    <div className="w-16 h-20 md:w-20 md:h-24 rounded-lg border border-dashed border-white/15 bg-white/5 text-[10px] text-gray-400 flex items-center justify-center text-center px-1">
-                                      No flyer
-                                    </div>
-                                  )}
-                                </td>
-                                <td className="px-4 py-3 font-semibold text-white">
-                                  {event.title}
-                                </td>
-                                <td className="px-4 py-3 text-gray-300">{formatDate(event)}</td>
-                                <td className="px-4 py-3 text-gray-300 capitalize">
-                                  {event.status?.toLowerCase().replace("_", " ") || "pending_review"}
-                                </td>
-                                <td className="px-4 py-3">
-                                  <button
-                                    onClick={() => handleToggleLive(event)}
-                                    className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#b11226]/30 bg-[#b11226]/10 hover:bg-[#b11226]/20 transition"
-                                    disabled={togglingId === event.id || !canToggle(event)}
-                                  >
-                                    {togglingId === event.id ? (
-                                      <Loader2 className="animate-spin" size={16} />
-                                    ) : event.isLive ? (
-                                      <ToggleRight size={18} className="text-green-300" />
+                              <Fragment key={event.id}>
+                                {event.status === "DISABLED" && (
+                                  <tr className="bg-red-500/10">
+                                    <td colSpan={8} className="px-4 py-3 text-red-200 text-sm">
+                                      Disabled by Admin - Please Update and Resubmit
+                                    </td>
+                                  </tr>
+                                )}
+                                <tr className="hover:bg-white/5 transition card-enter">
+                                  <td className="px-4 py-3">
+                                    {event.flyerUrl ? (
+                                      <div className="w-16 h-20 md:w-20 md:h-24 rounded-lg overflow-hidden border border-white/10 bg-white/5">
+                                        <img
+                                          src={event.flyerUrl}
+                                          alt={`${event.title} flyer`}
+                                          className="w-full h-full object-cover"
+                                        />
+                                      </div>
                                     ) : (
-                                      <ToggleLeft size={18} className="text-gray-300" />
+                                      <div className="w-16 h-20 md:w-20 md:h-24 rounded-lg border border-dashed border-white/15 bg-white/5 text-[10px] text-gray-400 flex items-center justify-center text-center px-1">
+                                        No flyer
+                                      </div>
                                     )}
-                                    <span className="text-sm text-white">
-                                      {event.isLive ? "Live" : canToggle(event) ? "Offline" : "Locked"}
-                                    </span>
-                                  </button>
-                                </td>
-                                <td className="px-4 py-3 text-gray-300">{event.capacity}</td>
-                                <td className="px-4 py-3 text-gray-300">
-                                  <div className="max-w-xs">{buildAddress(event)}</div>
-                                </td>
-                                <td className="px-4 py-3 text-right">
-                                  <Link
-                                    to={`/events/${event.id}/edit`}
-                                    className="inline-flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg border border-white/10 transition"
-                                  >
-                                    <Pencil size={16} />
-                                    Edit
-                                  </Link>
-                                </td>
-                              </tr>
+                                  </td>
+                                  <td className="px-4 py-3 font-semibold text-white">
+                                    {event.title}
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-300">{formatDate(event)}</td>
+                                  <td className="px-4 py-3 text-gray-300 capitalize">
+                                    {event.status?.toLowerCase().replace("_", " ") || "pending_review"}
+                                  </td>
+                                  <td className="px-4 py-3">
+                                    <button
+                                      onClick={() => handleToggleLive(event)}
+                                      className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-[#b11226]/30 bg-[#b11226]/10 hover:bg-[#b11226]/20 transition"
+                                      disabled={togglingId === event.id || !canToggle(event)}
+                                    >
+                                      {togglingId === event.id ? (
+                                        <Loader2 className="animate-spin" size={16} />
+                                      ) : event.isLive ? (
+                                        <ToggleRight size={18} className="text-green-300" />
+                                      ) : (
+                                        <ToggleLeft size={18} className="text-gray-300" />
+                                      )}
+                                      <span className="text-sm text-white">
+                                        {event.isLive ? "Live" : canToggle(event) ? "Offline" : "Locked"}
+                                      </span>
+                                    </button>
+                                  </td>
+                                  <td className="px-4 py-3 text-gray-300">{event.capacity}</td>
+                                  <td className="px-4 py-3 text-gray-300">
+                                    <div className="max-w-xs">{buildAddress(event)}</div>
+                                  </td>
+                                  <td className="px-4 py-3 text-right">
+                                    <Link
+                                      to={`/events/${event.id}/edit`}
+                                      className="inline-flex items-center gap-2 px-3 py-2 bg-white/10 hover:bg-white/20 text-white rounded-lg border border-white/10 transition"
+                                    >
+                                      <Pencil size={16} />
+                                      Edit
+                                    </Link>
+                                  </td>
+                                </tr>
+                              </Fragment>
                             ))}
                           </tbody>
                         </table>
@@ -392,7 +401,7 @@ export default function MyEvents({ embedded = false }: MyEventsProps) {
               })}
             </div>
           )}
-        </div>
+        </PageContainer>
       </div>
     </>
   );
