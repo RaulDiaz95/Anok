@@ -99,7 +99,7 @@ export default function AdminEventTable({
                 </div>
               </td>
               <td className="px-4 py-3 text-gray-300 capitalize">
-                {event.status?.toLowerCase().replaceAll("_", " ")}
+                {event.status?.toLowerCase().split("_").join(" ")}
               </td>
               <td className="px-4 py-3 text-gray-300">
                 {event.adminNotes || "-"}
