@@ -13,7 +13,7 @@ import org.springframework.stereotype.Component;
 import java.util.UUID;
 
 /**
- * Seeds development/demo users for local testing.
+ * Seeds development/demo users for local testing and CI/CD pipelines.
  * Only runs in non-production environments.
  */
 @Component
@@ -54,6 +54,34 @@ public class DevelopmentUserSeeder implements CommandLineRunner {
                 "raul",
                 userRole,
                 true
+        );
+
+        // CI/CD Test Users - for automated testing in pipelines
+        seedUser(
+                UUID.fromString("b0000000-0000-0000-0000-000000000001"),
+                "test1@anok.com",
+                "Test123!",
+                "Test User 1",
+                userRole,
+                true
+        );
+
+        seedUser(
+                UUID.fromString("b0000000-0000-0000-0000-000000000002"),
+                "test2@anok.com",
+                "Test123!",
+                "Test User 2",
+                userRole,
+                true
+        );
+
+        seedUser(
+                UUID.fromString("b0000000-0000-0000-0000-000000000003"),
+                "testunvalidated@anok.com",
+                "Test123!",
+                "Test User Unvalidated",
+                userRole,
+                false
         );
     }
 

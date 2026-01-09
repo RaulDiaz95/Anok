@@ -41,6 +41,11 @@ public class SampleEventSeeder implements CommandLineRunner {
 
     @Override
     public void run(String... args) {
+        // Skip seeding if events already exist
+        if (eventRepository.count() > 0) {
+            return;
+        }
+
         // Get demo user as event owner
         User demoOwner = userRepository.findByEmailNormalized("demo@anok.com")
                 .orElseThrow(() -> new RuntimeException("Demo user not found"));
@@ -79,11 +84,6 @@ public class SampleEventSeeder implements CommandLineRunner {
     }
 
     private void createTodayEvent(User owner) {
-        UUID eventId = UUID.fromString("a0000000-0000-0000-0000-000000000000");
-
-        // Delete existing "today" event if it exists (so we can update the date)
-        eventRepository.findById(eventId).ifPresent(eventRepository::delete);
-
         LocalDate today = LocalDate.now();
         LocalTime currentTime = LocalTime.now();
         int currentHour = currentTime.getHour();
@@ -93,7 +93,6 @@ public class SampleEventSeeder implements CommandLineRunner {
         int endHour = Math.min(startHour + 3, 23);
 
         Event event = new Event();
-        event.setId(eventId);
         event.setOwner(owner);
         event.setTitle("🔴 HAPPENING TODAY - Live Music Night");
         event.setDescription("Currently happening event! This event date updates automatically on server restart to always be TODAY.");
@@ -130,12 +129,6 @@ public class SampleEventSeeder implements CommandLineRunner {
     }
 
     private void createEvent(int index, User owner, EventStatus status, boolean isLive, int year) {
-        // Generate UUID based on index
-        UUID eventId = UUID.fromString(String.format("b0000000-0000-0000-0000-%012d", index));
-
-        // Replace existing seeded event so updates to seed data always apply
-        eventRepository.findById(eventId).ifPresent(eventRepository::delete);
-
         // Sample data arrays for variety
         String[] titles = {
             "Summer Music Festival", "Jazz Night", "Electronic Dreams", "Rock Revolution",
@@ -210,7 +203,6 @@ public class SampleEventSeeder implements CommandLineRunner {
         }
 
         Event event = new Event();
-        event.setId(eventId);
         event.setOwner(owner);
         event.setTitle(title);
         event.setDescription(description);
@@ -247,9 +239,6 @@ public class SampleEventSeeder implements CommandLineRunner {
     }
 
     private void createTodayStartedEvent(User owner) {
-        UUID eventId = UUID.fromString("a0000000-0000-0000-0000-000000000001");
-        eventRepository.findById(eventId).ifPresent(eventRepository::delete);
-
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now().withMinute(0).withSecond(0).withNano(0);
         int startHour = Math.max(now.getHour() - 2, 0); // started a couple of hours ago
@@ -257,7 +246,6 @@ public class SampleEventSeeder implements CommandLineRunner {
         int length = Math.max(1, endHour - startHour);
 
         Event event = new Event();
-        event.setId(eventId);
         event.setOwner(owner);
         event.setTitle("🟠 STARTED EARLIER - Afternoon Jam");
         event.setDescription("Already in progress today. Useful for testing 'happening now' logic.");
@@ -288,9 +276,6 @@ public class SampleEventSeeder implements CommandLineRunner {
     }
 
     private void createTodayUpcomingEvent(User owner) {
-        UUID eventId = UUID.fromString("a0000000-0000-0000-0000-000000000002");
-        eventRepository.findById(eventId).ifPresent(eventRepository::delete);
-
         LocalDate today = LocalDate.now();
         LocalTime now = LocalTime.now().withMinute(0).withSecond(0).withNano(0);
         int startHour = Math.min(now.getHour() + 3, 22); // a few hours from now, leave room for end time
@@ -298,7 +283,6 @@ public class SampleEventSeeder implements CommandLineRunner {
         int length = Math.max(1, endHour - startHour);
 
         Event event = new Event();
-        event.setId(eventId);
         event.setOwner(owner);
         event.setTitle("🟢 TODAY LATER - Evening Showcase");
         event.setDescription("Upcoming later today. Good for testing that same-day future events are included.");
