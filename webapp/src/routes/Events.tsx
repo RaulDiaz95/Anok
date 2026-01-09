@@ -458,7 +458,7 @@ export default function Events() {
           {hasFilteredEvents && (
             <div className={`grid ${gridCols} gap-5 md:gap-6`}>
               {filteredEvents.map((event) => (
-                <motion.div key={event.id} layout>
+                <motion.div key={event.id} layout transition={{ duration: 0.5 }}>
                   <EventFlyerCard event={event} size={flyerSize} />
                 </motion.div>
               ))}
