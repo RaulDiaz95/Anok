@@ -9,6 +9,83 @@ import PageContainer from "../components/PageContainer";
 import { useInfiniteEvents } from "../hooks/useEvents";
 import { useAuth } from "../contexts/AuthContext";
 
+type FilterDropdownProps = {
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  widthClass?: string;
+};
+
+function FilterDropdown({ value, options, onChange, widthClass }: FilterDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const current = options.find((option) => option === value) ?? options[0] ?? "";
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!open) return;
+      const target = event.target as Node;
+      if (rootRef.current && !rootRef.current.contains(target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className={`relative ${widthClass ?? ""}`}>
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        onClick={() => setOpen((prev) => !prev)}
+        className="w-full bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#b11226]/60 flex items-center justify-between gap-3"
+      >
+        <span className="truncate">{current}</span>
+        <svg
+          className={`h-4 w-4 text-[#f7c0c7] transition-transform ${open ? "rotate-180" : ""}`}
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M6 9L12 15L18 9"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {open && (
+        <div
+          role="listbox"
+          className="absolute z-50 mt-2 w-full max-h-64 overflow-auto rounded-xl border border-white/10 bg-[#0f0f1a] shadow-xl"
+        >
+          {options.map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="option"
+              aria-selected={option === value}
+              onClick={() => {
+                onChange(option);
+                setOpen(false);
+              }}
+              className={`w-full text-left px-4 py-2 text-sm transition ${
+                option === value ? "bg-[#b11226]/20 text-white" : "text-gray-200 hover:bg-white/5"
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
 export default function Events() {
   const loaderRef = useRef<HTMLDivElement | null>(null);
   const { user } = useAuth();
@@ -298,47 +375,32 @@ export default function Events() {
           <div className="flex flex-col md:flex-row md:items-center md:justify-end gap-4 mb-4">
             <label className="flex flex-col gap-2 text-sm text-gray-300 w-full md:w-auto">
               <span className="text-xs uppercase tracking-wide text-gray-400">Genre</span>
-              <select
+              <FilterDropdown
                 value={selectedGenre}
-                onChange={(e) => setSelectedGenre(e.target.value)}
-                className="w-full md:w-56 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#b11226]/60"
-              >
-                {genreOptions.map((option) => (
-                  <option key={option} value={option} className="text-black">
-                    {option}
-                  </option>
-                ))}
-              </select>
+                options={genreOptions}
+                onChange={setSelectedGenre}
+                widthClass="w-full md:w-56"
+              />
             </label>
 
             <label className="flex flex-col gap-2 text-sm text-gray-300 w-full md:w-auto">
               <span className="text-xs uppercase tracking-wide text-gray-400">Date</span>
-              <select
+              <FilterDropdown
                 value={selectedDate}
-                onChange={(e) => setSelectedDate(e.target.value)}
-                className="w-full md:w-48 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#b11226]/60"
-              >
-                {dateOptions.map((option) => (
-                  <option key={option} value={option} className="text-black">
-                    {option}
-                  </option>
-                ))}
-              </select>
+                options={dateOptions}
+                onChange={setSelectedDate}
+                widthClass="w-full md:w-48"
+              />
             </label>
 
             <label className="flex flex-col gap-2 text-sm text-gray-300 w-full md:w-auto">
               <span className="text-xs uppercase tracking-wide text-gray-400">Vicinity to Travel</span>
-              <select
+              <FilterDropdown
                 value={selectedVicinity}
-                onChange={(e) => setSelectedVicinity(e.target.value)}
-                className="w-full md:w-52 bg-white/5 border border-white/10 rounded-xl px-4 py-2 text-sm text-white focus:outline-none focus:ring-2 focus:ring-[#b11226]/60"
-              >
-                {vicinityOptions.map((option) => (
-                  <option key={option} value={option} className="text-black">
-                    {option}
-                  </option>
-                ))}
-              </select>
+                options={vicinityOptions}
+                onChange={setSelectedVicinity}
+                widthClass="w-full md:w-52"
+              />
             </label>
 
             <button

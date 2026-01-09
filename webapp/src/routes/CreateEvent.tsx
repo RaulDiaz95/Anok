@@ -127,6 +127,17 @@ export default function CreateEvent() {
   const [isLoadingEvent, setIsLoadingEvent] = useState(false);
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [adminNotes, setAdminNotes] = useState("");
+  const timeOptions = useMemo(() => {
+    const options: string[] = [];
+    for (let hour = 0; hour < 24; hour += 1) {
+      for (let minute = 0; minute < 60; minute += 15) {
+        options.push(
+          `${String(hour).padStart(2, "0")}:${String(minute).padStart(2, "0")}`
+        );
+      }
+    }
+    return options;
+  }, []);
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -671,13 +682,10 @@ export default function CreateEvent() {
                     <label className="block text-sm font-medium text-gray-300">
                       Event Date
                     </label>
-                    <input
-                      type="date"
+                    <DateDropdown
                       value={eventDate}
-                      onChange={(e) => setEventDate(e.target.value)}
-                      required
-                      aria-invalid={Boolean(fieldErrors.eventDate)}
-                      className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                      onChange={setEventDate}
+                      ariaInvalid={Boolean(fieldErrors.eventDate)}
                     />
                     {hasSubmitted && fieldErrors.eventDate && (
                       <p className="text-xs text-red-400 mt-1">{fieldErrors.eventDate}</p>
@@ -690,13 +698,11 @@ export default function CreateEvent() {
                     <label className="block text-sm font-medium text-gray-300">
                       Start Time
                     </label>
-                    <input
-                      type="time"
+                    <TimeDropdown
                       value={startTime}
-                      onChange={(e) => setStartTime(e.target.value)}
-                      required
-                      aria-invalid={Boolean(fieldErrors.startTime)}
-                      className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                      options={timeOptions}
+                      onChange={setStartTime}
+                      ariaInvalid={Boolean(fieldErrors.startTime)}
                     />
                     {hasSubmitted && fieldErrors.startTime && (
                       <p className="text-xs text-red-400 mt-1">{fieldErrors.startTime}</p>
@@ -1207,9 +1213,265 @@ export default function CreateEvent() {
   );
 }
 
+type TimeDropdownProps = {
+  value: string;
+  options: string[];
+  onChange: (value: string) => void;
+  ariaInvalid?: boolean;
+};
+
+function TimeDropdown({ value, options, onChange, ariaInvalid }: TimeDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const current = value || "Select time";
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!open) return;
+      const target = event.target as Node;
+      if (rootRef.current && !rootRef.current.contains(target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-haspopup="listbox"
+        aria-expanded={open}
+        aria-invalid={ariaInvalid}
+        onClick={() => setOpen((prev) => !prev)}
+        className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition flex items-center justify-between gap-3"
+      >
+        <span className="truncate">{current}</span>
+        <svg
+          className={`h-4 w-4 text-[#f7c0c7] transition-transform ${open ? "rotate-180" : ""}`}
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M6 9L12 15L18 9"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {open && (
+        <div
+          role="listbox"
+          className="absolute z-50 mt-2 w-full max-h-64 overflow-auto rounded-lg border border-white/10 bg-[#0f0f1a] shadow-xl"
+        >
+          {options.map((option) => (
+            <button
+              key={option}
+              type="button"
+              role="option"
+              aria-selected={option === value}
+              onClick={() => {
+                onChange(option);
+                setOpen(false);
+              }}
+              className={`w-full text-left px-4 py-2 text-sm transition ${
+                option === value ? "bg-[#b11226]/20 text-white" : "text-gray-200 hover:bg-white/5"
+              }`}
+            >
+              {option}
+            </button>
+          ))}
+        </div>
+      )}
+    </div>
+  );
+}
+
+type DateDropdownProps = {
+  value: string;
+  onChange: (value: string) => void;
+  ariaInvalid?: boolean;
+};
+
+function DateDropdown({ value, onChange, ariaInvalid }: DateDropdownProps) {
+  const [open, setOpen] = useState(false);
+  const rootRef = useRef<HTMLDivElement | null>(null);
+  const selectedDate = value ? parseDateInput(value) : null;
+  const [viewDate, setViewDate] = useState<Date>(() => selectedDate ?? new Date());
+  const currentLabel = selectedDate ? formatDateLabel(selectedDate) : "Select date";
+
+  useEffect(() => {
+    if (!open) return;
+    setViewDate(selectedDate ?? new Date());
+  }, [open, selectedDate]);
+
+  useEffect(() => {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (!open) return;
+      const target = event.target as Node;
+      if (rootRef.current && !rootRef.current.contains(target)) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, [open]);
+
+  const monthStart = new Date(viewDate.getFullYear(), viewDate.getMonth(), 1);
+  const daysInMonth = new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 0).getDate();
+  const startOffset = monthStart.getDay();
+  const cells = Array.from({ length: 42 }, (_, index) => {
+    const dayNumber = index - startOffset + 1;
+    if (dayNumber < 1 || dayNumber > daysInMonth) {
+      return null;
+    }
+    return new Date(viewDate.getFullYear(), viewDate.getMonth(), dayNumber);
+  });
+
+  return (
+    <div ref={rootRef} className="relative">
+      <button
+        type="button"
+        aria-haspopup="dialog"
+        aria-expanded={open}
+        aria-invalid={ariaInvalid}
+        onClick={() => setOpen((prev) => !prev)}
+        className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition flex items-center justify-between gap-3"
+      >
+        <span className="truncate">{currentLabel}</span>
+        <svg
+          className={`h-4 w-4 text-[#f7c0c7] transition-transform ${open ? "rotate-180" : ""}`}
+          viewBox="0 0 24 24"
+          fill="none"
+          aria-hidden="true"
+        >
+          <path
+            d="M6 9L12 15L18 9"
+            stroke="currentColor"
+            strokeWidth="2"
+            strokeLinecap="round"
+            strokeLinejoin="round"
+          />
+        </svg>
+      </button>
+      {open && (
+        <div className="absolute z-50 mt-2 w-full rounded-lg border border-white/10 bg-[#0f0f1a] shadow-xl p-4">
+          <div className="flex items-center justify-between mb-3">
+            <button
+              type="button"
+              onClick={() =>
+                setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() - 1, 1))
+              }
+              className="px-2 py-1 rounded-md text-gray-300 hover:bg-white/10 transition"
+            >
+              {"<"}
+            </button>
+            <div className="text-sm text-white font-semibold">
+              {formatMonthLabel(viewDate)}
+            </div>
+            <button
+              type="button"
+              onClick={() =>
+                setViewDate(new Date(viewDate.getFullYear(), viewDate.getMonth() + 1, 1))
+              }
+              className="px-2 py-1 rounded-md text-gray-300 hover:bg-white/10 transition"
+            >
+              {">"}
+            </button>
+          </div>
+          <div className="grid grid-cols-7 gap-1 text-xs text-gray-400 mb-2">
+            {["Su", "Mo", "Tu", "We", "Th", "Fr", "Sa"].map((label) => (
+              <div key={label} className="text-center">
+                {label}
+              </div>
+            ))}
+          </div>
+          <div className="grid grid-cols-7 gap-1">
+            {cells.map((date, index) =>
+              date ? (
+                <button
+                  key={toDateInput(date)}
+                  type="button"
+                  onClick={() => {
+                    onChange(toDateInput(date));
+                    setOpen(false);
+                  }}
+                  className={`h-8 rounded-md text-sm transition ${
+                    value === toDateInput(date)
+                      ? "bg-[#b11226] text-white"
+                      : isToday(date)
+                      ? "bg-white/5 text-white"
+                      : "text-gray-200 hover:bg-white/10"
+                  }`}
+                >
+                  {date.getDate()}
+                </button>
+              ) : (
+                <div key={`empty-${index}`} className="h-8" />
+              )
+            )}
+          </div>
+        </div>
+      )}
+    </div>
+  );
+}
+
 function toTimeInput(time?: string | null): string {
   if (!time) return "";
   const [hh, mm] = time.split(":");
   if (!hh || !mm) return time;
   return `${hh.padStart(2, "0")}:${mm.padStart(2, "0")}`;
+}
+
+function parseDateInput(value: string): Date | null {
+  const parts = value.split("-").map((part) => Number(part));
+  if (parts.length !== 3) return null;
+  const [year, month, day] = parts;
+  if (!year || !month || !day) return null;
+  return new Date(year, month - 1, day);
+}
+
+function toDateInput(date: Date): string {
+  const year = date.getFullYear();
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${year}-${month}-${day}`;
+}
+
+function formatDateLabel(date: Date): string {
+  const month = String(date.getMonth() + 1).padStart(2, "0");
+  const day = String(date.getDate()).padStart(2, "0");
+  return `${month}/${day}/${date.getFullYear()}`;
+}
+
+function formatMonthLabel(date: Date): string {
+  const months = [
+    "January",
+    "February",
+    "March",
+    "April",
+    "May",
+    "June",
+    "July",
+    "August",
+    "September",
+    "October",
+    "November",
+    "December",
+  ];
+  return `${months[date.getMonth()]} ${date.getFullYear()}`;
+}
+
+function isToday(date: Date): boolean {
+  const now = new Date();
+  return (
+    date.getFullYear() === now.getFullYear() &&
+    date.getMonth() === now.getMonth() &&
+    date.getDate() === now.getDate()
+  );
 }
