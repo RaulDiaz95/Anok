@@ -38,7 +38,9 @@ export default function AdminEventsPage({ mode }: Props) {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [notesById, setNotesById] = useState<Record<string, string>>({});
+  const [deleteReasonsById, setDeleteReasonsById] = useState<Record<string, string>>({});
   const [actionId, setActionId] = useState<string | null>(null);
+  const [deleteConfirmId, setDeleteConfirmId] = useState<string | null>(null);
 
   const load = async () => {
     setLoading(true);
@@ -61,6 +63,15 @@ export default function AdminEventsPage({ mode }: Props) {
     setNotesById((prev) => ({ ...prev, [id]: value }));
   };
 
+  const updateDeleteReason = (id: string, value: string) => {
+    setDeleteReasonsById((prev) => ({ ...prev, [id]: value }));
+  };
+
+  const toggleDeleteConfirm = (id: string) => {
+    setError("");
+    setDeleteConfirmId((prev) => (prev === id ? null : id));
+  };
+
   const runAction = async (id: string, action: "approve" | "disable" | "delete" | "request") => {
     setActionId(`${id}-${action}`);
     setError("");
@@ -70,7 +81,14 @@ export default function AdminEventsPage({ mode }: Props) {
       } else if (action === "disable") {
         await adminEventService.disable(id);
       } else if (action === "delete") {
-        await adminEventService.delete(id);
+        const reason = deleteReasonsById[id]?.trim() || "";
+        if (!reason) {
+          setError("Delete reason is required.");
+          setActionId(null);
+          return;
+        }
+        await adminEventService.delete(id, reason);
+        setDeleteConfirmId(null);
       } else {
         await adminEventService.requestChanges(id, notesById[id] || "");
       }
@@ -97,11 +115,22 @@ export default function AdminEventsPage({ mode }: Props) {
           events={events}
           notesById={notesById}
           onNoteChange={updateNote}
+          deleteReasonsById={deleteReasonsById}
+          onDeleteReasonChange={updateDeleteReason}
           onApprove={(id) => runAction(id, "approve")}
           onDisable={(id) => runAction(id, "disable")}
           onDelete={(id) => runAction(id, "delete")}
+          onDeleteToggle={toggleDeleteConfirm}
           onRequestChanges={(id) => runAction(id, "request")}
           actionId={actionId}
+          deleteConfirmId={deleteConfirmId}
+          showActions={mode !== "deleted"}
+          showApprove={mode !== "live" && mode !== "deleted"}
+          showDisable={mode !== "disabled" && mode !== "deleted" && mode !== "pending"}
+          showDelete={mode !== "deleted"}
+          showRequestChanges={mode !== "live" && mode !== "deleted"}
+          showNotes={mode !== "live" && mode !== "deleted"}
+          showDeleteReason={mode !== "deleted"}
         />
       )}
     </div>

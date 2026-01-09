@@ -29,7 +29,7 @@ export default function CreateEvent() {
   const [title, setTitle] = useState("");
   const [eventDate, setEventDate] = useState("");
   const [startTime, setStartTime] = useState("");
-  const [eventLengthHours, setEventLengthHours] = useState<number>(1);
+  const [eventLengthHours, setEventLengthHours] = useState("");
   const [flyerPreview, setFlyerPreview] = useState("");
   const [flyerUrl, setFlyerUrl] = useState("");
   const [isLive, setIsLive] = useState(false);
@@ -113,22 +113,18 @@ export default function CreateEvent() {
     setVenueSearchOpen(false);
     setActiveVenueIndex(-1);
   };
-  const [about, setAbout] = useState("");
   const [capacity, setCapacity] = useState(0);
   const [allAges, setAllAges] = useState(true);
   const [alcohol, setAlcohol] = useState(false);
   const [performers, setPerformers] = useState<PerformerInput[]>([
     { performerName: "", genre1: "", genre2: "", genre3: "", performerLink: "" },
   ]);
-  const [genres, setGenres] = useState<string[]>([]);
-  const [genreError, setGenreError] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
   const [isLoadingEvent, setIsLoadingEvent] = useState(false);
-  const [genreQuery, setGenreQuery] = useState("");
   const [hasSubmitted, setHasSubmitted] = useState(false);
   const [adminNotes, setAdminNotes] = useState("");
 
@@ -186,7 +182,9 @@ export default function CreateEvent() {
         setTitle(data.title || "");
         setEventDate(data.eventDate || "");
         setStartTime(toTimeInput(data.startTime));
-        setEventLengthHours(data.eventLengthHours ?? 0);
+        setEventLengthHours(
+          typeof data.eventLengthHours === "number" ? String(data.eventLengthHours) : ""
+        );
         setFlyerUrl(data.flyerUrl || "");
         setFlyerPreview(data.flyerUrl || "");
         setIsLive(Boolean(data.isLive));
@@ -198,11 +196,9 @@ export default function CreateEvent() {
       setVenueCity(data.venueCity || "");
       setVenueNameInput(data.venueName || "");
       setVenueSearchQuery(data.venueName || "");
-      setAbout(data.about || "");
       setCapacity(data.capacity ?? 0);
       setAllAges(Boolean(data.allAges));
       setAlcohol(Boolean(data.alcohol));
-      setGenres(data.genres || []);
       setAdminNotes(data.adminNotes || "");
         setPerformers(
           data.performers && data.performers.length
@@ -224,11 +220,24 @@ export default function CreateEvent() {
     loadEvent();
   }, [eventId, isAuthenticated, isEdit]);
 
+  const deriveGenresFromPerformers = (inputs: PerformerInput[]) => {
+    const derived = inputs
+      .map((p) => p.genre1?.trim() || "")
+      .filter((genre) => genre.length > 0)
+      .map((genre) => {
+        const exact = ALLOWED_GENRES.find(
+          (allowed) => allowed.toLowerCase() === genre.toLowerCase()
+        );
+        return exact || "";
+      })
+      .filter((genre) => genre.length > 0);
+    return Array.from(new Set(derived)).slice(0, 50);
+  };
+
   const validationErrors = useMemo(() => {
     const errors: Record<string, string> = {};
     const hints: string[] = [];
     const trimmedTitle = title.trim();
-    const trimmedAbout = about.trim();
     const trimmedVenueName = venueName.trim();
     const trimmedVenueAddress = venueAddress.trim();
     const trimmedCity = venueCity.trim();
@@ -242,13 +251,6 @@ export default function CreateEvent() {
     } else if (trimmedTitle.length < 3 || trimmedTitle.length > 100) {
       errors.title = "Title must be 3-100 characters";
       hints.push("Title must be 3-100 characters");
-    }
-    if (!trimmedAbout) {
-      errors.about = "Description is required";
-      hints.push("Description (10-2000 chars)");
-    } else if (trimmedAbout.length < 10 || trimmedAbout.length > 2000) {
-      errors.about = "Description must be 10-2000 characters";
-      hints.push("Description must be 10-2000 characters");
     }
     if (!eventDate) {
       errors.eventDate = "Event date is required";
@@ -281,12 +283,15 @@ export default function CreateEvent() {
         }
       }
     }
-    if (!eventLengthHours || Number.isNaN(eventLengthHours)) {
-      errors.eventLengthHours = "Length is required";
-      hints.push("Event length (>= 1 hour)");
-    } else if (eventLengthHours < 1) {
-      errors.eventLengthHours = "Event must last at least 1 hour";
-      hints.push("Event must last at least 1 hour");
+    if (eventLengthHours) {
+      const parsedLength = Number(eventLengthHours);
+      if (Number.isNaN(parsedLength)) {
+        errors.eventLengthHours = "Length must be a number";
+        hints.push("Event length (>= 1 hour)");
+      } else if (parsedLength < 1) {
+        errors.eventLengthHours = "Event must last at least 1 hour";
+        hints.push("Event must last at least 1 hour");
+      }
     }
     if (!usingExistingVenue) {
       if (!trimmedVenueName) {
@@ -323,18 +328,19 @@ export default function CreateEvent() {
         hints.push("Country");
       }
     }
-    if (!genres.length) {
-      errors.genres = "Select at least one genre";
-      hints.push("At least 1 genre");
+    const headlinerName = performers[0]?.performerName?.trim() ?? "";
+    if (!headlinerName) {
+      errors.performers = "Headliner name is required";
+      hints.push("Headliner name");
     }
-    if (!performers.some((p) => p.performerName.trim())) {
-      errors.performers = "Add at least one performer";
-      hints.push("Performer name");
+    const derivedGenres = deriveGenresFromPerformers(performers);
+    if (derivedGenres.length === 0 && !errors.performers) {
+      errors.performers = "Add at least one performer genre to set event genres";
+      hints.push("Performer genre");
     }
     return { errors, hints };
   }, [
     title,
-    about,
     eventDate,
     startTime,
     eventLengthHours,
@@ -344,7 +350,6 @@ export default function CreateEvent() {
     venueCity,
     venueState,
     venueCountry,
-    genres,
     performers,
   ]);
 
@@ -357,32 +362,6 @@ export default function CreateEvent() {
     [validationErrors, isSubmitting, isUploadingFlyer]
   );
 
-  const handleAddGenre = () => {
-    const exact = ALLOWED_GENRES.find(
-      (g) => g.toLowerCase() === genreQuery.trim().toLowerCase()
-    );
-    if (!exact) {
-      setGenreError("Select a genre from the list");
-      return;
-    }
-    if (genres.some((g) => g.toLowerCase() === exact.toLowerCase())) {
-      setGenreError("Genre already selected");
-      return;
-    }
-    if (genres.length >= 50) {
-      setGenreError("You can only add up to 50 genres.");
-      return;
-    }
-    setGenres([...genres, exact]);
-    setGenreQuery("");
-    setGenreError("");
-  };
-
-  const handleGenreQueryChange = (value: string) => {
-    setGenreQuery(value);
-    setGenreError("");
-  };
-
   const handlePostalChange = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 12);
     setVenueZipCode(digits);
@@ -390,7 +369,7 @@ export default function CreateEvent() {
 
   const handleEventLengthChange = (value: string) => {
     const digits = value.replace(/\D/g, "");
-    setEventLengthHours(digits ? Math.max(1, parseInt(digits, 10)) : 0);
+    setEventLengthHours(digits);
   };
 
   const handleCapacityChange = (value: string) => {
@@ -452,10 +431,6 @@ export default function CreateEvent() {
     setPerformers(performers.filter((_, i) => i !== index));
   };
 
-  const removeGenre = (index: number) => {
-    setGenres(genres.filter((_, idx) => idx !== index));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -482,13 +457,18 @@ export default function CreateEvent() {
         throw new Error("Add at least one performer with a name.");
       }
 
+        const derivedGenres = deriveGenresFromPerformers(validPerformers);
+        if (derivedGenres.length === 0) {
+          throw new Error("Add at least one performer genre to set event genres.");
+        }
+
         const usingExistingVenue = selectedVenueId !== null && !isNewVenue;
         const payload = {
           title: title.trim(),
           flyerUrl: flyerUrl || null,
           eventDate,
           startTime,
-          eventLengthHours: Number(eventLengthHours),
+          eventLengthHours: eventLengthHours ? Number(eventLengthHours) : null,
           isLive: false,
           selectedVenueId: usingExistingVenue ? selectedVenueId : null,
           venueName: venueName.trim(),
@@ -497,12 +477,12 @@ export default function CreateEvent() {
           venueState: venueState.trim(),
           venueCountry: venueCountry.trim(),
           venueCity: venueCity.trim(),
-          about: about.trim(),
+          about: null,
           capacity,
           allAges,
           alcohol,
           performers: validPerformers,
-          genres,
+          genres: derivedGenres,
         };
 
       if (isEdit && eventId) {
@@ -541,6 +521,13 @@ export default function CreateEvent() {
   if (!isAuthenticated) {
     return null;
   }
+
+  const getPerformerLabel = (index: number) => {
+    if (index === 0) return "Headliner";
+    if (index === 1) return "Supporting Act #1 - Main Support";
+    if (index === 4) return "Supporting Act #4 - Opening Act";
+    return `Supporting Act #${index}`;
+  };
 
   return (
     <>
@@ -724,9 +711,9 @@ export default function CreateEvent() {
                       inputMode="numeric"
                       value={eventLengthHours}
                       onChange={(e) => handleEventLengthChange(e.target.value)}
-                      required
                       aria-invalid={Boolean(fieldErrors.eventLengthHours)}
                       className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
+                      placeholder="Optional"
                     />
                     {hasSubmitted && fieldErrors.eventLengthHours && (
                       <p className="text-xs text-red-400 mt-1">{fieldErrors.eventLengthHours}</p>
@@ -756,7 +743,7 @@ export default function CreateEvent() {
                         >
                           <div className="flex items-center justify-between">
                             <p className="text-sm text-gray-300 font-semibold">
-                              Performer #{index + 1}
+                              {getPerformerLabel(index)}
                             </p>
                             {performers.length > 1 && (
                               <button
@@ -777,7 +764,7 @@ export default function CreateEvent() {
                               onChange={(e) =>
                                 updatePerformer(index, "performerName", e.target.value)
                               }
-                              placeholder="Performer name"
+                              placeholder={`${getPerformerLabel(index)} name`}
                               className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition md:col-span-2"
                               required={index === 0}
                             />
@@ -1147,102 +1134,25 @@ export default function CreateEvent() {
                   </section>
 
                   <section className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
-                    <h2 className="text-lg font-semibold text-white">About the Event</h2>
-                    <textarea
-                      value={about}
-                      onChange={(e) => setAbout(e.target.value)}
-                      rows={4}
-                      required
-                      aria-invalid={Boolean(fieldErrors.about)}
-                      className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                      placeholder="Tell attendees about the event..."
-                    />
-                    {hasSubmitted && fieldErrors.about && (
-                      <p className="text-xs text-red-400 mt-1">{fieldErrors.about}</p>
-                    )}
-
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Genres{" "}
-                          <span className="text-gray-500 text-xs">
-                            (up to 50 tags, 25 chars each)
-                          </span>
-                        </label>
-                        <div className="space-y-3">
-                          <div className="flex gap-2 flex-col sm:flex-row">
-                            <div className="flex-1">
-                              <input
-                                type="text"
-                                value={genreQuery}
-                                onChange={(e) => handleGenreQueryChange(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    handleAddGenre();
-                                  }
-                                }}
-                                aria-invalid={Boolean(fieldErrors.genres) || Boolean(genreError)}
-                                className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                                placeholder="Type a genre (must match allowed list)"
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={handleAddGenre}
-                              className="px-4 py-3 bg-[#b11226] hover:bg-[#d31a33] text-white rounded-lg flex items-center gap-2 transition sm:w-auto w-full justify-center"
-                            >
-                              <Plus size={16} />
-                              Add
-                            </button>
-                          </div>
-                          {genreError && <p className="text-sm text-red-400">{genreError}</p>}
-                          {hasSubmitted && fieldErrors.genres && !genreError && (
-                            <p className="text-sm text-red-400">{fieldErrors.genres}</p>
-                          )}
-                          {genres.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-1">
-                              {genres.map((genre, index) => (
-                                <span
-                                  key={`${genre}-${index}`}
-                                  className="flex items-center gap-1 px-3 py-1 rounded-full bg-[#b11226]/10 border border-[#b11226]/30 text-sm text-white"
-                                >
-                                  {genre}
-                                  <button
-                                    type="button"
-                                    onClick={() => removeGenre(index)}
-                                    className="text-gray-400 hover:text-white transition"
-                                    aria-label={`Remove ${genre}`}
-                                  >
-                                    <X size={14} />
-                                  </button>
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-4">
-                        <label className="flex items-center gap-3 text-sm text-gray-300">
-                          <input
-                            type="checkbox"
-                            checked={allAges}
-                            onChange={(e) => setAllAges(e.target.checked)}
-                            className="h-5 w-5 rounded border-gray-700 bg-[#0f0f1a]/50 text-[#b11226] focus:ring-2 focus:ring-[#b11226] focus:outline-none"
-                          />
-                          All Ages
-                        </label>
-                        <label className="flex items-center gap-3 text-sm text-gray-300">
-                          <input
-                            type="checkbox"
-                            checked={alcohol}
-                            onChange={(e) => setAlcohol(e.target.checked)}
-                            className="h-5 w-5 rounded border-gray-700 bg-[#0f0f1a]/50 text-[#b11226] focus:ring-2 focus:ring-[#b11226] focus:outline-none"
-                          />
-                          Alcohol
-                        </label>
-                      </div>
+                    <div className="flex flex-wrap items-center gap-4">
+                      <label className="flex items-center gap-3 text-sm text-gray-300">
+                        <input
+                          type="checkbox"
+                          checked={allAges}
+                          onChange={(e) => setAllAges(e.target.checked)}
+                          className="h-5 w-5 rounded border-gray-700 bg-[#0f0f1a]/50 text-[#b11226] focus:ring-2 focus:ring-[#b11226] focus:outline-none"
+                        />
+                        All Ages
+                      </label>
+                      <label className="flex items-center gap-3 text-sm text-gray-300">
+                        <input
+                          type="checkbox"
+                          checked={alcohol}
+                          onChange={(e) => setAlcohol(e.target.checked)}
+                          className="h-5 w-5 rounded border-gray-700 bg-[#0f0f1a]/50 text-[#b11226] focus:ring-2 focus:ring-[#b11226] focus:outline-none"
+                        />
+                        Alcohol
+                      </label>
                     </div>
                   </section>
                 </div>

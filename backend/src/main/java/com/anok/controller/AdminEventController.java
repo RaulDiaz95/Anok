@@ -68,8 +68,13 @@ public class AdminEventController {
     }
 
     @PatchMapping("/{id}/delete")
-    public ResponseEntity<EventResponse> delete(@PathVariable UUID id, Authentication authentication) {
-        return ResponseEntity.ok(eventService.delete(id, authentication.getName()));
+    public ResponseEntity<EventResponse> delete(
+            @PathVariable UUID id,
+            @RequestBody(required = false) DeleteEventRequest request,
+            Authentication authentication
+    ) {
+        String notes = request == null ? null : request.getAdminNotes();
+        return ResponseEntity.ok(eventService.delete(id, authentication.getName(), notes));
     }
 
     @PatchMapping("/{id}/request-changes")
@@ -82,6 +87,18 @@ public class AdminEventController {
     }
 
     public static class RequestChangesRequest {
+        private String adminNotes;
+
+        public String getAdminNotes() {
+            return adminNotes;
+        }
+
+        public void setAdminNotes(String adminNotes) {
+            this.adminNotes = adminNotes;
+        }
+    }
+
+    public static class DeleteEventRequest {
         private String adminNotes;
 
         public String getAdminNotes() {

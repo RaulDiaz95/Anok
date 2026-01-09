@@ -22,12 +22,12 @@ export interface Event {
   flyerUrl: string | null;
   eventDate: string;
   startTime: string;
-  eventLengthHours: number;
+  eventLengthHours?: number | null;
   endTime?: string | null;
   eventDateTime: string;
   isLive: boolean;
   status?: EventStatus;
-  about: string;
+  about?: string | null;
   title: string;
   venueName: string;
   venueAddress: string;
@@ -63,11 +63,11 @@ export interface CreateEventInput {
   flyerUrl: string | null;
   eventDate: string;
   startTime: string;
-  eventLengthHours: number;
+  eventLengthHours?: number | null;
   endTime?: string | null;
   isLive: boolean;
   status?: EventStatus;
-  about: string;
+  about?: string | null;
   title: string;
   selectedVenueId?: string | null;
   venueName: string;

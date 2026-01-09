@@ -1,15 +1,28 @@
 import { format } from "date-fns";
+import { Link } from "react-router-dom";
 import { Event } from "../types/event";
 
 type Props = {
   events: Event[];
   notesById: Record<string, string>;
   onNoteChange: (id: string, value: string) => void;
+  deleteReasonsById: Record<string, string>;
+  onDeleteReasonChange: (id: string, value: string) => void;
   onApprove: (id: string) => void;
   onDisable: (id: string) => void;
   onDelete: (id: string) => void;
+  onDeleteToggle: (id: string) => void;
   onRequestChanges: (id: string) => void;
   actionId: string | null;
+  deleteConfirmId: string | null;
+  showActions?: boolean;
+  showApprove?: boolean;
+  showDisable?: boolean;
+  showDelete?: boolean;
+  showRequestChanges?: boolean;
+  showNotes?: boolean;
+  showDeleteReason?: boolean;
+  notesLabel?: string;
 };
 
 const formatDateTime = (event: Event) => {
@@ -25,12 +38,26 @@ export default function AdminEventTable({
   events,
   notesById,
   onNoteChange,
+  deleteReasonsById,
+  onDeleteReasonChange,
   onApprove,
   onDisable,
   onDelete,
+  onDeleteToggle,
   onRequestChanges,
   actionId,
+  deleteConfirmId,
+  showActions = true,
+  showApprove = true,
+  showDisable = true,
+  showDelete = true,
+  showRequestChanges = true,
+  showNotes = true,
+  showDeleteReason = true,
+  notesLabel = "Admin Notes",
 }: Props) {
+  const columnCount =
+    9 + (showNotes ? 0 : -1) + (showActions ? 1 : 0);
   return (
     <div className="bg-[#1a1a2e]/70 border border-[#b11226]/10 rounded-2xl shadow-lg w-full overflow-hidden">
       <table className="min-w-full text-sm">
@@ -42,16 +69,16 @@ export default function AdminEventTable({
             <th className="px-4 py-3 text-left">Venue</th>
             <th className="px-4 py-3 text-left">Genres</th>
             <th className="px-4 py-3 text-left">Status</th>
-            <th className="px-4 py-3 text-left">Admin Notes</th>
+            {showNotes && <th className="px-4 py-3 text-left">{notesLabel}</th>}
             <th className="px-4 py-3 text-left">Submitted By</th>
             <th className="px-4 py-3 text-left">Performers</th>
-            <th className="px-4 py-3 text-right">Actions</th>
+            {showActions && <th className="px-4 py-3 text-right">Actions</th>}
           </tr>
         </thead>
         <tbody className="divide-y divide-[#b11226]/10">
           {events.length === 0 && (
             <tr>
-              <td className="px-4 py-6 text-gray-400 text-center" colSpan={10}>
+              <td className="px-4 py-6 text-gray-400 text-center" colSpan={columnCount}>
                 No events found.
               </td>
             </tr>
@@ -74,7 +101,12 @@ export default function AdminEventTable({
                 )}
               </td>
               <td className="px-4 py-3 font-semibold text-white">
-                <div>{event.title}</div>
+                <Link
+                  to={`/events/${event.id}`}
+                  className="hover:underline text-white"
+                >
+                  {event.title}
+                </Link>
                 {event.venueCity && (
                   <div className="text-xs text-gray-400">{event.venueCity}</div>
                 )}
@@ -87,7 +119,7 @@ export default function AdminEventTable({
               <td className="px-4 py-3 text-gray-300">
                 <div className="flex flex-wrap gap-1">
                   {event.genres?.length
-                    ? event.genres.map((genre) => (
+                    ? Array.from(new Set(event.genres)).map((genre) => (
                         <span
                           key={`${event.id}-${genre}`}
                           className="px-2 py-0.5 text-[11px] rounded-full bg-[#b11226]/15 border border-[#b11226]/30 text-gray-100"
@@ -99,11 +131,13 @@ export default function AdminEventTable({
                 </div>
               </td>
               <td className="px-4 py-3 text-gray-300 capitalize">
-                {event.status?.toLowerCase().replaceAll("_", " ")}
+                {event.status?.toLowerCase().split("_").join(" ")}
               </td>
-              <td className="px-4 py-3 text-gray-300">
-                {event.adminNotes || "-"}
-              </td>
+              {showNotes && (
+                <td className="px-4 py-3 text-gray-300">
+                  {event.adminNotes || "-"}
+                </td>
+              )}
               <td className="px-4 py-3 text-gray-300">
                 {event.submittedByUser || event.ownerName || event.ownerEmail || "-"}
               </td>
@@ -112,49 +146,88 @@ export default function AdminEventTable({
                   ? event.performers.map((p) => p.performerName).join(", ")
                   : "-"}
               </td>
-              <td className="px-4 py-3 text-right">
-                <div className="flex flex-col gap-2 items-end">
-                  <div className="flex flex-wrap gap-2 justify-end">
-                    <button
-                      onClick={() => onApprove(event.id)}
-                      disabled={actionId === `${event.id}-approve`}
-                      className="px-3 py-1 rounded-lg text-xs bg-green-600 hover:bg-green-700 text-white transition disabled:opacity-50"
-                    >
-                      Approve
-                    </button>
-                    <button
-                      onClick={() => onDisable(event.id)}
-                      disabled={actionId === `${event.id}-disable`}
-                      className="px-3 py-1 rounded-lg text-xs bg-yellow-600 hover:bg-yellow-700 text-white transition disabled:opacity-50"
-                    >
-                      Disable
-                    </button>
-                    <button
-                      onClick={() => onDelete(event.id)}
-                      disabled={actionId === `${event.id}-delete`}
-                      className="px-3 py-1 rounded-lg text-xs bg-red-600 hover:bg-red-700 text-white transition disabled:opacity-50"
-                    >
-                      Delete
-                    </button>
+              {showActions && (
+                <td className="px-4 py-3 text-right">
+                  <div className="flex flex-col gap-2 items-end">
+                    <div className="flex flex-wrap gap-2 justify-end">
+                      {showApprove && (
+                        <button
+                          onClick={() => onApprove(event.id)}
+                          disabled={actionId === `${event.id}-approve`}
+                          className="px-3 py-1 rounded-lg text-xs bg-green-600 hover:bg-green-700 text-white transition disabled:opacity-50"
+                        >
+                          Approve
+                        </button>
+                      )}
+                      {showDisable && (
+                        <button
+                          onClick={() => onDisable(event.id)}
+                          disabled={actionId === `${event.id}-disable`}
+                          className="px-3 py-1 rounded-lg text-xs bg-yellow-600 hover:bg-yellow-700 text-white transition disabled:opacity-50"
+                        >
+                          Disable
+                        </button>
+                      )}
+                      {showDelete && deleteConfirmId !== event.id && (
+                        <button
+                          onClick={() => onDeleteToggle(event.id)}
+                          disabled={actionId === `${event.id}-delete`}
+                          className="px-3 py-1 rounded-lg text-xs bg-red-600 hover:bg-red-700 text-white transition disabled:opacity-50"
+                        >
+                          Delete
+                        </button>
+                      )}
+                      {showDelete && deleteConfirmId === event.id && (
+                        <>
+                          <button
+                            onClick={() => onDelete(event.id)}
+                            disabled={actionId === `${event.id}-delete`}
+                            className="px-3 py-1 rounded-lg text-xs bg-red-600 hover:bg-red-700 text-white transition disabled:opacity-50"
+                          >
+                            Confirm Delete
+                          </button>
+                          <button
+                            onClick={() => onDeleteToggle(event.id)}
+                            disabled={actionId === `${event.id}-delete`}
+                            className="px-3 py-1 rounded-lg text-xs bg-white/10 hover:bg-white/20 text-white transition disabled:opacity-50"
+                          >
+                            Cancel
+                          </button>
+                        </>
+                      )}
+                    </div>
+                    {showDeleteReason && showDelete && deleteConfirmId === event.id && (
+                      <div className="w-full">
+                        <textarea
+                          value={deleteReasonsById[event.id] || ""}
+                          onChange={(e) => onDeleteReasonChange(event.id, e.target.value)}
+                          placeholder="Delete reason"
+                        rows={2}
+                        className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-[#b11226]/60"
+                      />
+                    </div>
+                  )}
+                  {showRequestChanges && (
+                    <div className="w-full">
+                      <textarea
+                          value={notesById[event.id] || ""}
+                          onChange={(e) => onNoteChange(event.id, e.target.value)}
+                          placeholder="Admin note"
+                          rows={2}
+                          className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-[#b11226]/60"
+                        />
+                        <button
+                          onClick={() => onRequestChanges(event.id)}
+                          disabled={actionId === `${event.id}-request`}
+                          className="mt-2 w-full px-3 py-1 rounded-lg text-xs bg-[#b11226] hover:bg-[#d31a33] text-white transition disabled:opacity-50"
+                        >
+                          Request Changes
+                        </button>
+                      </div>
+                    )}
                   </div>
-                  <div className="w-full">
-                    <textarea
-                      value={notesById[event.id] || ""}
-                      onChange={(e) => onNoteChange(event.id, e.target.value)}
-                      placeholder="Admin note"
-                      rows={2}
-                      className="w-full bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:ring-2 focus:ring-[#b11226]/60"
-                    />
-                    <button
-                      onClick={() => onRequestChanges(event.id)}
-                      disabled={actionId === `${event.id}-request`}
-                      className="mt-2 w-full px-3 py-1 rounded-lg text-xs bg-[#b11226] hover:bg-[#d31a33] text-white transition disabled:opacity-50"
-                    >
-                      Request Changes
-                    </button>
-                  </div>
-                </div>
-              </td>
+                </td>
+              )}
             </tr>
           ))}
         </tbody>

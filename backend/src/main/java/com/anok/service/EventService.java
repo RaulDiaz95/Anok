@@ -250,19 +250,25 @@ public class EventService {
     }
 
     @Transactional
-    public EventResponse delete(UUID id, String adminEmail) {
+    public EventResponse delete(UUID id, String adminEmail, String adminNotes) {
         Event event = eventRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        String trimmedNotes = adminNotes == null ? null : adminNotes.trim();
+        if (trimmedNotes == null || trimmedNotes.isEmpty()) {
+            throw new ValidationException("adminNotes", "Delete reason is required");
+        }
         event.setStatus(EventStatus.DELETED);
         event.setLive(false);
         event.setDeletedAt(LocalDateTime.now());
         event.setDeletedBy(resolveAdminId(adminEmail));
+        event.setAdminNotes(trimmedNotes);
         Event saved = eventRepository.save(event);
         if (event.getOwner() != null) {
+            String message = "Your event \"" + event.getTitle() + "\" was deleted by an admin. Reason: " + trimmedNotes;
             notificationService.createNotification(
                     event.getOwner().getId(),
                     "Event deleted",
-                    "Your event \"" + event.getTitle() + "\" was deleted by an admin.",
+                    message,
                     com.anok.model.NotificationType.WARNING
             );
         }
@@ -309,11 +315,12 @@ public class EventService {
         }
 
         event.setTitle(request.getTitle().trim());
-        event.setDescription(request.getAbout().trim());
-        event.setAbout(request.getAbout().trim());
+        String trimmedAbout = request.getAbout() == null ? "" : request.getAbout().trim();
+        event.setDescription(trimmedAbout);
+        event.setAbout(trimmedAbout);
         event.setEventDate(request.getEventDate());
         event.setStartTime(request.getStartTime());
-        event.setEventLengthHours(request.getEventLengthHours());
+        event.setEventLengthHours(request.getEventLengthHours() == null ? 0 : request.getEventLengthHours());
         event.setEndTime(computedEndTime);
         event.setEventDateTime(request.getEventDate().atTime(request.getStartTime()));
         String flyer = request.getFlyerUrl();
@@ -447,9 +454,6 @@ public class EventService {
         if (request.getTitle() != null && request.getTitle().trim().isEmpty()) {
             throw new ValidationException("title", "Title cannot be empty");
         }
-        if (request.getAbout() != null && request.getAbout().trim().isEmpty()) {
-            throw new ValidationException("about", "Description cannot be empty");
-        }
         if (request.getEventDate() != null && request.getEventDate().isBefore(LocalDate.now())) {
             throw new ValidationException("Event date cannot be in the past");
         }
@@ -464,9 +468,7 @@ public class EventService {
             if (computedEnd == null && request.getEventLengthHours() != null) {
                 computedEnd = request.getStartTime().plusHours(request.getEventLengthHours());
             }
-            if (computedEnd != null && computedEnd.isBefore(request.getStartTime())) {
-                throw new ValidationException("Invalid time range");
-            }
+            // End times that wrap past midnight are allowed; duration is informational.
         }
         if (request.getSelectedVenueId() == null) {
             if (isBlank(request.getVenueName())) {

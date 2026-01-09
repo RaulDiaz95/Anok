@@ -20,8 +20,7 @@ export default function DashboardSidebar() {
     ];
     if (user?.roles?.includes("ROLE_ADMIN") || user?.roles?.includes("ROLE_SUPERUSER")) {
       items.splice(1, 0, { to: "/admin", label: "Admin Panel", icon: ShieldCheck });
-      items.splice(2, 0, { to: "/dashboard/admin/review-events", label: "Approval Queue", icon: ShieldCheck });
-      items.splice(3, 0, { to: "/dashboard/admin/venues", label: "Venue Insights", icon: MapPin });
+      items.splice(2, 0, { to: "/dashboard/admin/venues", label: "Venue Insights", icon: MapPin });
     }
     return items;
   }, [user]);

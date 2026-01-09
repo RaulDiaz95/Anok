@@ -48,10 +48,12 @@ export const adminEventService = {
     if (!res.ok) throw new Error("Failed to disable event");
     return res.json();
   },
-  async delete(id: string): Promise<Event> {
+  async delete(id: string, adminNotes: string): Promise<Event> {
     const res = await fetch(buildApiUrl(`/admin/events/${id}/delete`), {
       method: "PATCH",
+      headers: { "Content-Type": "application/json" },
       credentials: "include",
+      body: JSON.stringify({ adminNotes }),
     });
     if (!res.ok) throw new Error("Failed to delete event");
     return res.json();

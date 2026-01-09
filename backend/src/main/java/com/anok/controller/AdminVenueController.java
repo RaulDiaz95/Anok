@@ -2,6 +2,7 @@ package com.anok.controller;
 
 import com.anok.dto.VenueInsightsResponse;
 import com.anok.dto.VenueResponse;
+import com.anok.dto.VenueUpdateRequest;
 import com.anok.service.AdminVenueService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.data.domain.PageRequest;
@@ -34,5 +35,10 @@ public class AdminVenueController {
     public ResponseEntity<Void> verify(@PathVariable UUID venueId) {
         adminVenueService.verifyVenue(venueId);
         return ResponseEntity.noContent().build();
+    }
+
+    @PatchMapping("/{venueId}")
+    public ResponseEntity<VenueResponse> update(@PathVariable UUID venueId, @RequestBody VenueUpdateRequest request) {
+        return ResponseEntity.ok(adminVenueService.updateVenue(venueId, request));
     }
 }

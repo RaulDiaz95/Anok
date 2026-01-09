@@ -8,14 +8,16 @@ import { useAuth } from "../contexts/AuthContext";
 
 type Props = {
   embedded?: boolean;
+  basePath?: string;
 };
 
-export default function AdminReviewEvents({ embedded = false }: Props) {
+export default function AdminReviewEvents({ embedded = false, basePath }: Props) {
   const navigate = useNavigate();
   const { user, isLoading } = useAuth();
   const [events, setEvents] = useState<Event[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const reviewBasePath = basePath ?? (embedded ? "/dashboard/admin/review-events" : "/admin/review-events");
 
   useEffect(() => {
     if (
@@ -53,7 +55,7 @@ export default function AdminReviewEvents({ embedded = false }: Props) {
           {!loading && events.length === 0 && <p className="text-gray-400">No pending events.</p>}
           <div className="grid gap-4 md:grid-cols-2">
             {events.map((e) => (
-              <AdminEventCard key={e.id} event={e} onReview={(id) => navigate(embedded ? `/dashboard/admin/review-events/${id}` : `/admin/review-events/${id}`)} />
+              <AdminEventCard key={e.id} event={e} onReview={(id) => navigate(`${reviewBasePath}/${id}`)} />
             ))}
           </div>
         </div>
@@ -65,7 +67,7 @@ export default function AdminReviewEvents({ embedded = false }: Props) {
           {!loading && events.length === 0 && <p className="text-gray-400">No pending events.</p>}
           <div className="grid gap-4 md:grid-cols-2">
             {events.map((e) => (
-              <AdminEventCard key={e.id} event={e} onReview={(id) => navigate(embedded ? `/dashboard/admin/review-events/${id}` : `/admin/review-events/${id}`)} />
+              <AdminEventCard key={e.id} event={e} onReview={(id) => navigate(`${reviewBasePath}/${id}`)} />
             ))}
           </div>
         </PageContainer>

@@ -41,6 +41,7 @@ export default function AppRoutes() {
           <Route path="events/live" element={<AdminEventsPage mode="live" />} />
           <Route path="events/disabled" element={<AdminEventsPage mode="disabled" />} />
           <Route path="events/deleted" element={<AdminEventsPage mode="deleted" />} />
+          <Route path="review-events" element={<AdminEventsPage mode="pending" />} />
         </Route>
         <Route path="/dashboard" element={<UserDashboardLayout />}>
           <Route index element={<Navigate to="events" replace />} />

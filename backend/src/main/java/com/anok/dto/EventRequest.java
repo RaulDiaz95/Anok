@@ -29,7 +29,6 @@ public class EventRequest {
     @NotNull
     private LocalTime startTime;
 
-    @NotNull
     @Min(value = 1, message = "Event must last at least 1 hour")
     private Integer eventLengthHours;
 
@@ -59,8 +58,7 @@ public class EventRequest {
 
     private UUID selectedVenueId;
 
-    @NotBlank
-    @Size(min = 10, max = 2000)
+    @Size(max = 2000)
     private String about;
 
     @NotNull

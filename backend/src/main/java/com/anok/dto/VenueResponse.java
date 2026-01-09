@@ -15,6 +15,10 @@ public class VenueResponse {
     private boolean verified;
     private int usageCount;
     private Integer capacity;
+    private Boolean createdByAdmin;
+    private String description;
+    private Double latitude;
+    private Double longitude;
 
     public VenueResponse(Venue venue) {
         this.id = venue.getId();
@@ -27,6 +31,10 @@ public class VenueResponse {
         this.verified = Boolean.TRUE.equals(venue.getVerified());
         this.usageCount = venue.getUsageCount() != null ? venue.getUsageCount() : 0;
         this.capacity = venue.getCapacity();
+        this.createdByAdmin = venue.getCreatedByAdmin();
+        this.description = venue.getDescription();
+        this.latitude = venue.getLatitude();
+        this.longitude = venue.getLongitude();
     }
 
     public UUID getId() {
@@ -67,5 +75,21 @@ public class VenueResponse {
 
     public Integer getCapacity() {
         return capacity;
+    }
+
+    public Boolean getCreatedByAdmin() {
+        return createdByAdmin;
+    }
+
+    public String getDescription() {
+        return description;
+    }
+
+    public Double getLatitude() {
+        return latitude;
+    }
+
+    public Double getLongitude() {
+        return longitude;
     }
 }
