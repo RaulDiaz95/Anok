@@ -247,8 +247,11 @@ export default function EventDetail() {
                   <div className="space-y-6">
                     {event.performers[0] && (
                       <div className="bg-[#1a1a2e]/70 border border-[#b11226]/40 rounded-xl p-4 shadow-[0_0_20px_rgba(177,18,38,0.2)]">
-                        {event.performers[0].performerLink && (
-                          <div className="flex items-center justify-end gap-2">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="px-3 py-1 rounded-full bg-[#b11226] text-white text-xs font-semibold tracking-wide">
+                            HEADLINER
+                          </span>
+                          {event.performers[0].performerLink && (
                             <a
                               href={event.performers[0].performerLink}
                               target="_blank"
@@ -257,12 +260,9 @@ export default function EventDetail() {
                             >
                               Web Page
                             </a>
-                          </div>
-                        )}
+                          )}
+                        </div>
                         <div className="mt-3 space-y-2">
-                          <div className="text-sm text-[#f7c0c7] uppercase tracking-wide">
-                            {getPerformerLabel(0, event.performers.length)}
-                          </div>
                           <div className="text-2xl font-bold text-white">
                             {event.performers[0].performerName}
                           </div>
