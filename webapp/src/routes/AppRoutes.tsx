@@ -17,6 +17,7 @@ import MyEvents from "./MyEvents";
 import AccountInformation from "./dashboard/AccountInformation";
 import PerformanceMetrics from "./dashboard/PerformanceMetrics";
 import SupportResources from "./dashboard/SupportResources";
+import Notifications from "./dashboard/Notifications";
 
 export default function AppRoutes() {
   return (
@@ -40,11 +41,13 @@ export default function AppRoutes() {
           <Route path="events/live" element={<AdminEventsPage mode="live" />} />
           <Route path="events/disabled" element={<AdminEventsPage mode="disabled" />} />
           <Route path="events/deleted" element={<AdminEventsPage mode="deleted" />} />
+          <Route path="review-events" element={<AdminEventsPage mode="pending" />} />
         </Route>
         <Route path="/dashboard" element={<UserDashboardLayout />}>
           <Route index element={<Navigate to="events" replace />} />
           <Route path="events" element={<MyEvents embedded />} />
           <Route path="account" element={<AccountInformation />} />
+          <Route path="notifications" element={<Notifications />} />
           <Route path="metrics" element={<PerformanceMetrics />} />
           <Route path="support" element={<SupportResources />} />
           <Route path="admin/review-events" element={<AdminReviewEvents embedded />} />

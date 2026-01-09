@@ -43,6 +43,13 @@ const buildAddress = (event?: Event | null) =>
     .filter((part) => part && part.trim() !== "")
     .join(", ");
 
+const getPerformerLabel = (index: number) => {
+  if (index === 0) return "Headliner";
+  if (index === 1) return "Supporting Act #1 - Main Support";
+  if (index === 4) return "Supporting Act #4 - Opening Act";
+  return `Supporting Act #${index}`;
+};
+
 export default function EventDetail() {
   const { id, eventId } = useParams<{ id?: string; eventId?: string }>();
   const resolvedId = eventId ?? id;
@@ -74,11 +81,9 @@ export default function EventDetail() {
   }, [resolvedId]);
 
   const dateLabel = useMemo(() => formatDate(event), [event]);
-  const timeRange = useMemo(() => {
+  const timeLabel = useMemo(() => {
     if (!event) return "";
     const start = formatTime(event.startTime);
-    const end = formatTime(event.endTime);
-    if (start && end) return `${start} \u2013 ${end}`;
     if (start) return start;
     return "";
   }, [event]);
@@ -182,9 +187,13 @@ export default function EventDetail() {
                     <div>
                       <p className="text-xs text-gray-400">Time</p>
                       <p className="font-semibold text-white">
-                        {timeRange || "Time to be confirmed"}
-                        {event.eventLengthHours ? ` (${event.eventLengthHours}h)` : ""}
+                        {timeLabel || "Time to be confirmed"}
                       </p>
+                      {event.eventLengthHours ? (
+                        <p className="text-xs text-gray-400">
+                          Event duration: {event.eventLengthHours}h
+                        </p>
+                      ) : null}
                     </div>
                   </div>
                 </div>
@@ -232,41 +241,91 @@ export default function EventDetail() {
               )}
 
               {event.performers && event.performers.length > 0 && (
-                <div className="space-y-3">
+                <div className="space-y-5">
                   <h2 className="text-xl font-semibold">Performers</h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-                    {event.performers.map((perf) => (
-                      <div
-                        key={perf.id || perf.performerName}
-                        className="bg-white/5 border border-white/10 rounded-lg p-3 shadow-inner space-y-1"
-                      >
-                        <div className="flex items-start justify-between gap-2">
-                          <p className="font-semibold text-white leading-tight">{perf.performerName}</p>
-                          {perf.performerLink && (
+                  <div className="space-y-6">
+                    {event.performers[0] && (
+                      <div className="bg-[#1a1a2e]/70 border border-[#b11226]/40 rounded-xl p-4 shadow-[0_0_20px_rgba(177,18,38,0.2)]">
+                        <div className="flex items-center justify-between gap-2">
+                          <span className="px-3 py-1 rounded-full bg-[#b11226] text-white text-xs font-semibold tracking-wide">
+                            HEADLINER
+                          </span>
+                          {event.performers[0].performerLink && (
                             <a
-                              href={perf.performerLink}
+                              href={event.performers[0].performerLink}
                               target="_blank"
                               rel="noreferrer"
-                              className="text-[11px] text-[#f7c0c7] underline hover:text-white"
+                              className="text-xs text-[#f7c0c7] underline hover:text-white"
                             >
                               Link
                             </a>
                           )}
                         </div>
-                        <div className="flex flex-wrap gap-1">
-                          {[perf.genre1, perf.genre2, perf.genre3]
-                            .filter(Boolean)
-                            .map((g) => (
-                              <span
-                                key={`${perf.performerName}-${g}`}
-                                className="px-2 py-0.5 text-[11px] rounded-full bg-[#b11226]/15 border border-[#b11226]/30 text-gray-100"
-                              >
-                                {g}
-                              </span>
-                            ))}
+                        <div className="mt-3 space-y-2">
+                          <div className="text-sm text-[#f7c0c7] uppercase tracking-wide">
+                            {getPerformerLabel(0)}
+                          </div>
+                          <div className="text-2xl font-bold text-white">
+                            {event.performers[0].performerName}
+                          </div>
+                          <div className="flex flex-wrap gap-2">
+                            {[event.performers[0].genre1, event.performers[0].genre2, event.performers[0].genre3]
+                              .filter(Boolean)
+                              .map((g) => (
+                                <span
+                                  key={`${event.performers?.[0]?.performerName}-${g}`}
+                                  className="px-3 py-1 rounded-full bg-[#b11226]/15 border border-[#b11226]/30 text-sm text-gray-100"
+                                >
+                                  {g}
+                                </span>
+                              ))}
+                          </div>
                         </div>
                       </div>
-                    ))}
+                    )}
+
+                    {event.performers.length > 1 && (
+                      <div className="space-y-3">
+                        <h3 className="text-lg font-semibold text-white">Supporting Acts</h3>
+                        <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                          {event.performers.slice(1).map((perf, idx) => (
+                            <div
+                              key={perf.id || `${perf.performerName}-${idx}`}
+                              className="bg-white/5 border border-white/10 rounded-lg p-4 shadow-inner space-y-2"
+                            >
+                              <div className="text-xs text-gray-400 uppercase tracking-wide">
+                                {getPerformerLabel(idx + 1)}
+                              </div>
+                              <div className="flex items-start justify-between gap-2">
+                                <p className="font-semibold text-white leading-tight">{perf.performerName}</p>
+                                {perf.performerLink && (
+                                  <a
+                                    href={perf.performerLink}
+                                    target="_blank"
+                                    rel="noreferrer"
+                                    className="text-[11px] text-[#f7c0c7] underline hover:text-white"
+                                  >
+                                    Link
+                                  </a>
+                                )}
+                              </div>
+                              <div className="flex flex-wrap gap-2">
+                                {[perf.genre1, perf.genre2, perf.genre3]
+                                  .filter(Boolean)
+                                  .map((g) => (
+                                    <span
+                                      key={`${perf.performerName}-${g}`}
+                                      className="px-3 py-1 rounded-full bg-[#b11226]/15 border border-[#b11226]/30 text-sm text-gray-100"
+                                    >
+                                      {g}
+                                    </span>
+                                  ))}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
                   </div>
                 </div>
               )}

@@ -9,6 +9,7 @@ import { useAuth } from "../contexts/AuthContext";
 
 type Props = {
   embedded?: boolean;
+  basePath?: string;
 };
 
 const formatDateTime = (date?: string, time?: string | null) => {
@@ -25,13 +26,14 @@ const formatDateTime = (date?: string, time?: string | null) => {
   }
 };
 
-export default function AdminReviewEventDetail({ embedded = false }: Props) {
+export default function AdminReviewEventDetail({ embedded = false, basePath }: Props) {
   const { eventId } = useParams<{ eventId: string }>();
   const { user, isLoading } = useAuth();
   const navigate = useNavigate();
   const [event, setEvent] = useState<Event | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const reviewBasePath = basePath ?? (embedded ? "/dashboard/admin/review-events" : "/admin/review-events");
 
   useEffect(() => {
     if (
@@ -67,7 +69,7 @@ export default function AdminReviewEventDetail({ embedded = false }: Props) {
     try {
       if (action === "approve") await adminEventService.approve(eventId);
       else await adminEventService.disable(eventId);
-      navigate(embedded ? "/dashboard/admin/review-events" : "/admin/review-events");
+      navigate(reviewBasePath);
     } catch (e) {
       setError(e instanceof Error ? e.message : "Action failed");
     }

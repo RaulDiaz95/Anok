@@ -113,23 +113,20 @@ export default function CreateEvent() {
     setVenueSearchOpen(false);
     setActiveVenueIndex(-1);
   };
-  const [about, setAbout] = useState("");
   const [capacity, setCapacity] = useState(0);
   const [allAges, setAllAges] = useState(true);
   const [alcohol, setAlcohol] = useState(false);
   const [performers, setPerformers] = useState<PerformerInput[]>([
     { performerName: "", genre1: "", genre2: "", genre3: "", performerLink: "" },
   ]);
-  const [genres, setGenres] = useState<string[]>([]);
-  const [genreError, setGenreError] = useState("");
   const [error, setError] = useState("");
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [success, setSuccess] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isUploadingFlyer, setIsUploadingFlyer] = useState(false);
   const [isLoadingEvent, setIsLoadingEvent] = useState(false);
-  const [genreQuery, setGenreQuery] = useState("");
   const [hasSubmitted, setHasSubmitted] = useState(false);
+  const [adminNotes, setAdminNotes] = useState("");
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
@@ -199,11 +196,10 @@ export default function CreateEvent() {
       setVenueCity(data.venueCity || "");
       setVenueNameInput(data.venueName || "");
       setVenueSearchQuery(data.venueName || "");
-      setAbout(data.about || "");
       setCapacity(data.capacity ?? 0);
       setAllAges(Boolean(data.allAges));
       setAlcohol(Boolean(data.alcohol));
-      setGenres(data.genres || []);
+      setAdminNotes(data.adminNotes || "");
         setPerformers(
           data.performers && data.performers.length
             ? data.performers.map((p) => ({
@@ -223,6 +219,20 @@ export default function CreateEvent() {
     };
     loadEvent();
   }, [eventId, isAuthenticated, isEdit]);
+
+  const deriveGenresFromPerformers = (inputs: PerformerInput[]) => {
+    const derived = inputs
+      .map((p) => p.genre1?.trim() || "")
+      .filter((genre) => genre.length > 0)
+      .map((genre) => {
+        const exact = ALLOWED_GENRES.find(
+          (allowed) => allowed.toLowerCase() === genre.toLowerCase()
+        );
+        return exact || "";
+      })
+      .filter((genre) => genre.length > 0);
+    return Array.from(new Set(derived)).slice(0, 50);
+  };
 
   const validationErrors = useMemo(() => {
     const errors: Record<string, string> = {};
@@ -318,13 +328,15 @@ export default function CreateEvent() {
         hints.push("Country");
       }
     }
-    if (!genres.length) {
-      errors.genres = "Select at least one genre";
-      hints.push("At least 1 genre");
+    const headlinerName = performers[0]?.performerName?.trim() ?? "";
+    if (!headlinerName) {
+      errors.performers = "Headliner name is required";
+      hints.push("Headliner name");
     }
-    if (!performers.some((p) => p.performerName.trim())) {
-      errors.performers = "Add at least one performer";
-      hints.push("Performer name");
+    const derivedGenres = deriveGenresFromPerformers(performers);
+    if (derivedGenres.length === 0 && !errors.performers) {
+      errors.performers = "Add at least one performer genre to set event genres";
+      hints.push("Performer genre");
     }
     return { errors, hints };
   }, [
@@ -338,7 +350,6 @@ export default function CreateEvent() {
     venueCity,
     venueState,
     venueCountry,
-    genres,
     performers,
   ]);
 
@@ -350,32 +361,6 @@ export default function CreateEvent() {
     () => Object.keys(validationErrors.errors).length === 0 && !isSubmitting && !isUploadingFlyer,
     [validationErrors, isSubmitting, isUploadingFlyer]
   );
-
-  const handleAddGenre = () => {
-    const exact = ALLOWED_GENRES.find(
-      (g) => g.toLowerCase() === genreQuery.trim().toLowerCase()
-    );
-    if (!exact) {
-      setGenreError("Select a genre from the list");
-      return;
-    }
-    if (genres.some((g) => g.toLowerCase() === exact.toLowerCase())) {
-      setGenreError("Genre already selected");
-      return;
-    }
-    if (genres.length >= 50) {
-      setGenreError("You can only add up to 50 genres.");
-      return;
-    }
-    setGenres([...genres, exact]);
-    setGenreQuery("");
-    setGenreError("");
-  };
-
-  const handleGenreQueryChange = (value: string) => {
-    setGenreQuery(value);
-    setGenreError("");
-  };
 
   const handlePostalChange = (value: string) => {
     const digits = value.replace(/\D/g, "").slice(0, 12);
@@ -446,10 +431,6 @@ export default function CreateEvent() {
     setPerformers(performers.filter((_, i) => i !== index));
   };
 
-  const removeGenre = (index: number) => {
-    setGenres(genres.filter((_, idx) => idx !== index));
-  };
-
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError("");
@@ -476,6 +457,11 @@ export default function CreateEvent() {
         throw new Error("Add at least one performer with a name.");
       }
 
+        const derivedGenres = deriveGenresFromPerformers(validPerformers);
+        if (derivedGenres.length === 0) {
+          throw new Error("Add at least one performer genre to set event genres.");
+        }
+
         const usingExistingVenue = selectedVenueId !== null && !isNewVenue;
         const payload = {
           title: title.trim(),
@@ -491,12 +477,12 @@ export default function CreateEvent() {
           venueState: venueState.trim(),
           venueCountry: venueCountry.trim(),
           venueCity: venueCity.trim(),
-          about: about.trim() || null,
+          about: null,
           capacity,
           allAges,
           alcohol,
           performers: validPerformers,
-          genres,
+          genres: derivedGenres,
         };
 
       if (isEdit && eventId) {
@@ -536,6 +522,13 @@ export default function CreateEvent() {
     return null;
   }
 
+  const getPerformerLabel = (index: number) => {
+    if (index === 0) return "Headliner";
+    if (index === 1) return "Supporting Act #1 - Main Support";
+    if (index === 4) return "Supporting Act #4 - Opening Act";
+    return `Supporting Act #${index}`;
+  };
+
   return (
     <>
       <Navbar />
@@ -548,8 +541,14 @@ export default function CreateEvent() {
             className="w-full"
           >
             <div className="bg-[#1a1a2e]/80 backdrop-blur-lg rounded-2xl shadow-2xl border border-[#b11226]/20 p-8">
-            <div className="flex items-start justify-between mb-8">
-              <div>
+              {adminNotes && (
+                <div className="mb-6 bg-[#b11226]/10 border border-[#b11226]/40 text-[#f7c0c7] rounded-xl px-4 py-3">
+                  <p className="text-xs uppercase tracking-wide text-[#f7c0c7]/80 mb-1">Admin note</p>
+                  <p className="text-sm text-[#f7c0c7]">{adminNotes}</p>
+                </div>
+              )}
+              <div className="flex items-start justify-between mb-8">
+                <div>
                 <p className="flex items-center gap-2 text-sm text-[#f06575] mb-3">
                   <ArrowLeft size={16} />
                   <button
@@ -744,7 +743,7 @@ export default function CreateEvent() {
                         >
                           <div className="flex items-center justify-between">
                             <p className="text-sm text-gray-300 font-semibold">
-                              Performer #{index + 1}
+                              {getPerformerLabel(index)}
                             </p>
                             {performers.length > 1 && (
                               <button
@@ -765,7 +764,7 @@ export default function CreateEvent() {
                               onChange={(e) =>
                                 updatePerformer(index, "performerName", e.target.value)
                               }
-                              placeholder="Performer name"
+                              placeholder={`${getPerformerLabel(index)} name`}
                               className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition md:col-span-2"
                               required={index === 0}
                             />
@@ -1135,101 +1134,25 @@ export default function CreateEvent() {
                   </section>
 
                   <section className="bg-white/5 border border-white/10 rounded-xl p-5 space-y-4">
-                    <h2 className="text-lg font-semibold text-white">Event Genre</h2>
-                    <textarea
-                      value={about}
-                      onChange={(e) => setAbout(e.target.value)}
-                      rows={4}
-                      aria-invalid={Boolean(fieldErrors.about)}
-                      className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                      placeholder="Optional - share the event genre or vibe..."
-                    />
-                    {hasSubmitted && fieldErrors.about && (
-                      <p className="text-xs text-red-400 mt-1">{fieldErrors.about}</p>
-                    )}
-
-                    <div className="space-y-4">
-                      <div>
-                        <label className="block text-sm font-medium text-gray-300 mb-2">
-                          Genres{" "}
-                          <span className="text-gray-500 text-xs">
-                            (up to 50 tags, 25 chars each)
-                          </span>
-                        </label>
-                        <div className="space-y-3">
-                          <div className="flex gap-2 flex-col sm:flex-row">
-                            <div className="flex-1">
-                              <input
-                                type="text"
-                                value={genreQuery}
-                                onChange={(e) => handleGenreQueryChange(e.target.value)}
-                                onKeyDown={(e) => {
-                                  if (e.key === "Enter") {
-                                    e.preventDefault();
-                                    handleAddGenre();
-                                  }
-                                }}
-                                aria-invalid={Boolean(fieldErrors.genres) || Boolean(genreError)}
-                                className="w-full px-4 py-3 bg-[#0f0f1a]/50 border border-gray-700 rounded-lg text-white placeholder-gray-500 focus:outline-none focus:ring-2 focus:ring-[#b11226] focus:border-transparent transition"
-                                placeholder="Type a genre (must match allowed list)"
-                              />
-                            </div>
-                            <button
-                              type="button"
-                              onClick={handleAddGenre}
-                              className="px-4 py-3 bg-[#b11226] hover:bg-[#d31a33] text-white rounded-lg flex items-center gap-2 transition sm:w-auto w-full justify-center"
-                            >
-                              <Plus size={16} />
-                              Add
-                            </button>
-                          </div>
-                          {genreError && <p className="text-sm text-red-400">{genreError}</p>}
-                          {hasSubmitted && fieldErrors.genres && !genreError && (
-                            <p className="text-sm text-red-400">{fieldErrors.genres}</p>
-                          )}
-                          {genres.length > 0 && (
-                            <div className="flex flex-wrap gap-2 mt-1">
-                              {genres.map((genre, index) => (
-                                <span
-                                  key={`${genre}-${index}`}
-                                  className="flex items-center gap-1 px-3 py-1 rounded-full bg-[#b11226]/10 border border-[#b11226]/30 text-sm text-white"
-                                >
-                                  {genre}
-                                  <button
-                                    type="button"
-                                    onClick={() => removeGenre(index)}
-                                    className="text-gray-400 hover:text-white transition"
-                                    aria-label={`Remove ${genre}`}
-                                  >
-                                    <X size={14} />
-                                  </button>
-                                </span>
-                              ))}
-                            </div>
-                          )}
-                        </div>
-                      </div>
-
-                      <div className="flex flex-wrap items-center gap-4">
-                        <label className="flex items-center gap-3 text-sm text-gray-300">
-                          <input
-                            type="checkbox"
-                            checked={allAges}
-                            onChange={(e) => setAllAges(e.target.checked)}
-                            className="h-5 w-5 rounded border-gray-700 bg-[#0f0f1a]/50 text-[#b11226] focus:ring-2 focus:ring-[#b11226] focus:outline-none"
-                          />
-                          All Ages
-                        </label>
-                        <label className="flex items-center gap-3 text-sm text-gray-300">
-                          <input
-                            type="checkbox"
-                            checked={alcohol}
-                            onChange={(e) => setAlcohol(e.target.checked)}
-                            className="h-5 w-5 rounded border-gray-700 bg-[#0f0f1a]/50 text-[#b11226] focus:ring-2 focus:ring-[#b11226] focus:outline-none"
-                          />
-                          Alcohol
-                        </label>
-                      </div>
+                    <div className="flex flex-wrap items-center gap-4">
+                      <label className="flex items-center gap-3 text-sm text-gray-300">
+                        <input
+                          type="checkbox"
+                          checked={allAges}
+                          onChange={(e) => setAllAges(e.target.checked)}
+                          className="h-5 w-5 rounded border-gray-700 bg-[#0f0f1a]/50 text-[#b11226] focus:ring-2 focus:ring-[#b11226] focus:outline-none"
+                        />
+                        All Ages
+                      </label>
+                      <label className="flex items-center gap-3 text-sm text-gray-300">
+                        <input
+                          type="checkbox"
+                          checked={alcohol}
+                          onChange={(e) => setAlcohol(e.target.checked)}
+                          className="h-5 w-5 rounded border-gray-700 bg-[#0f0f1a]/50 text-[#b11226] focus:ring-2 focus:ring-[#b11226] focus:outline-none"
+                        />
+                        Alcohol
+                      </label>
                     </div>
                   </section>
                 </div>

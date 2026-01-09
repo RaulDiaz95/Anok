@@ -2,8 +2,7 @@ import { NavLink } from "react-router-dom";
 
 const navItems = [
   { label: "Overview", to: "/admin" },
-  { label: "All Events", to: "/admin/events" },
-  { label: "Pending Approval", to: "/admin/events/pending" },
+  { label: "Approval Queue", to: "/admin/review-events" },
   { label: "Live Events", to: "/admin/events/live" },
   { label: "Disabled Events", to: "/admin/events/disabled" },
   { label: "Deleted Events", to: "/admin/events/deleted" },
@@ -18,6 +17,7 @@ export default function AdminSidebar() {
           <NavLink
             key={item.to}
             to={item.to}
+            end={item.to === "/admin"}
             className={({ isActive }) =>
               `block px-3 py-2 rounded-lg text-sm transition ${
                 isActive

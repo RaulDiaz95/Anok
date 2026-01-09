@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { NavLink } from "react-router-dom";
-import { LayoutDashboard, User, BarChart3, LifeBuoy, Menu } from "lucide-react";
+import { LayoutDashboard, User, BarChart3, LifeBuoy, Menu, Bell } from "lucide-react";
 import { AnokBrand } from "../../components/AnokBrand";
 import { useAuth } from "../../contexts/AuthContext";
 import { ShieldCheck } from "lucide-react";
@@ -13,13 +13,14 @@ export default function DashboardSidebar() {
   const navItems = useMemo(() => {
     const items = [
       { to: "/dashboard/events", label: "My Events", icon: LayoutDashboard },
+      { to: "/dashboard/notifications", label: "Notifications", icon: Bell },
       { to: "/dashboard/account", label: "Account Information", icon: User },
       { to: "/dashboard/metrics", label: "Performance Metrics", icon: BarChart3 },
       { to: "/dashboard/support", label: "Support & Resources", icon: LifeBuoy },
     ];
     if (user?.roles?.includes("ROLE_ADMIN") || user?.roles?.includes("ROLE_SUPERUSER")) {
       items.splice(1, 0, { to: "/admin", label: "Admin Panel", icon: ShieldCheck });
-      items.splice(3, 0, { to: "/dashboard/admin/venues", label: "Venue Insights", icon: MapPin });
+      items.splice(2, 0, { to: "/dashboard/admin/venues", label: "Venue Insights", icon: MapPin });
     }
     return items;
   }, [user]);

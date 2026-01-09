@@ -19,9 +19,11 @@ import java.util.UUID;
 public class EventController {
 
     private final EventService eventService;
+    private final com.anok.service.EventReactionService eventReactionService;
 
-    public EventController(EventService eventService) {
+    public EventController(EventService eventService, com.anok.service.EventReactionService eventReactionService) {
         this.eventService = eventService;
+        this.eventReactionService = eventReactionService;
     }
 
     @PostMapping
@@ -47,8 +49,9 @@ public class EventController {
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<EventResponse> getEvent(@PathVariable UUID id) {
-        return ResponseEntity.ok(eventService.getEvent(id));
+    public ResponseEntity<EventResponse> getEvent(@PathVariable UUID id, Authentication authentication) {
+        String viewerEmail = authentication != null ? authentication.getName() : null;
+        return ResponseEntity.ok(eventService.getEvent(id, viewerEmail));
     }
 
     @PutMapping("/{id}")
@@ -67,6 +70,15 @@ public class EventController {
             Authentication authentication
     ) {
         return ResponseEntity.ok(eventService.updateLiveStatus(id, request.isLive(), authentication.getName()));
+    }
+
+    @PostMapping("/{id}/report")
+    public ResponseEntity<Void> reportEvent(
+            @PathVariable UUID id,
+            Authentication authentication
+    ) {
+        eventReactionService.reportEvent(id, authentication.getName());
+        return ResponseEntity.noContent().build();
     }
 
     public static class LiveStatusRequest {
