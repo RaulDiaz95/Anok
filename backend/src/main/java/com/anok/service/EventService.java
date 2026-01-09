@@ -76,6 +76,7 @@ public class EventService {
         if (event.getStatus() == EventStatus.DELETED) {
             throw new ValidationException("Event has been deleted");
         }
+        EventStatus previousStatus = event.getStatus();
         // Any edit triggers re-review
         applyEventRequest(event, request, false);
         event.setStatus(EventStatus.PENDING_REVIEW);
@@ -85,6 +86,14 @@ public class EventService {
         event.setDisabledAt(null);
         event.setDisabledBy(null);
         Event saved = eventRepository.save(event);
+        if (previousStatus == EventStatus.DISABLED) {
+            notificationService.notifyUsersByRoles(
+                    java.util.List.of("ROLE_SUPERUSER", "ROLE_ADMIN"),
+                    "Event changes submitted",
+                    "Updated event ready for review: " + saved.getTitle(),
+                    com.anok.model.NotificationType.ADMIN_ALERT
+            );
+        }
         return toResponse(saved);
     }
 
