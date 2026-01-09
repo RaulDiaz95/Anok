@@ -43,11 +43,12 @@ const buildAddress = (event?: Event | null) =>
     .filter((part) => part && part.trim() !== "")
     .join(", ");
 
-const getPerformerLabel = (index: number) => {
+const getPerformerLabel = (index: number, total: number) => {
   if (index === 0) return "Headliner";
-  if (index === 1) return "Supporting Act #1 - Main Support";
-  if (index === 4) return "Supporting Act #4 - Opening Act";
-  return `Supporting Act #${index}`;
+  const supportNumber = index;
+  if (index === total - 1) return `Supporting Act #${supportNumber} - Opening Act`;
+  if (index === 1 && total > 2) return "Supporting Act #1 - Main Support";
+  return `Supporting Act #${supportNumber}`;
 };
 
 export default function EventDetail() {
@@ -246,24 +247,21 @@ export default function EventDetail() {
                   <div className="space-y-6">
                     {event.performers[0] && (
                       <div className="bg-[#1a1a2e]/70 border border-[#b11226]/40 rounded-xl p-4 shadow-[0_0_20px_rgba(177,18,38,0.2)]">
-                        <div className="flex items-center justify-between gap-2">
-                          <span className="px-3 py-1 rounded-full bg-[#b11226] text-white text-xs font-semibold tracking-wide">
-                            HEADLINER
-                          </span>
-                          {event.performers[0].performerLink && (
+                        {event.performers[0].performerLink && (
+                          <div className="flex items-center justify-end gap-2">
                             <a
                               href={event.performers[0].performerLink}
                               target="_blank"
                               rel="noreferrer"
                               className="text-xs text-[#f7c0c7] underline hover:text-white"
                             >
-                              Link
+                              Web Page
                             </a>
-                          )}
-                        </div>
+                          </div>
+                        )}
                         <div className="mt-3 space-y-2">
                           <div className="text-sm text-[#f7c0c7] uppercase tracking-wide">
-                            {getPerformerLabel(0)}
+                            {getPerformerLabel(0, event.performers.length)}
                           </div>
                           <div className="text-2xl font-bold text-white">
                             {event.performers[0].performerName}
@@ -294,7 +292,7 @@ export default function EventDetail() {
                               className="bg-white/5 border border-white/10 rounded-lg p-4 shadow-inner space-y-2"
                             >
                               <div className="text-xs text-gray-400 uppercase tracking-wide">
-                                {getPerformerLabel(idx + 1)}
+                                {getPerformerLabel(idx + 1, event.performers.length)}
                               </div>
                               <div className="flex items-start justify-between gap-2">
                                 <p className="font-semibold text-white leading-tight">{perf.performerName}</p>
@@ -305,7 +303,7 @@ export default function EventDetail() {
                                     rel="noreferrer"
                                     className="text-[11px] text-[#f7c0c7] underline hover:text-white"
                                   >
-                                    Link
+                                    Web Page
                                   </a>
                                 )}
                               </div>
