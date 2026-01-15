@@ -1,5 +1,7 @@
 package com.anok.controller;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -17,6 +19,7 @@ import java.util.Map;
 @RequestMapping
 public class UploadController {
 
+    private static final Logger log = LoggerFactory.getLogger(UploadController.class);
     private final S3Service s3Service;
 
     public UploadController(S3Service s3Service) {
@@ -42,9 +45,9 @@ public class UploadController {
             ));
 
         } catch (Exception e) {
-            e.printStackTrace();
+            log.error("Failed to create upload presign URL", e);
             return ResponseEntity.internalServerError()
-                    .body(Map.of("error", "Upload failed", "details", e.getMessage()));
+                    .body(Map.of("error", "Unable to generate upload URL. Please try again later."));
         }
     }
 

@@ -2,7 +2,7 @@ spring:
   # Production database configuration
   # Use separate environment variables for database connection
   datasource:
-    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:anok_db}
+    url: jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:anok_db}?sslmode=${DB_SSLMODE:require}
     username: ${DB_USER:postgres}
     password: ${DB_PASSWORD:postgres}
     driver-class-name: org.postgresql.Driver
@@ -44,10 +44,14 @@ logging:
 
 # CORS configuration for production
 cors:
-  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5174,http://localhost:3000}
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost:5173,http://localhost:5173,http://localhost:3000}
   allowed-methods: GET,POST,PUT,DELETE,PATCH,OPTIONS
   allowed-headers: "*"
   allow-credentials: true
+
+# Google OAuth
+google:
+  client-id: ${GOOGLE_CLIENT_ID:}
 
 # OpenAPI/Swagger Documentation (disabled in production by default)
 springdoc:

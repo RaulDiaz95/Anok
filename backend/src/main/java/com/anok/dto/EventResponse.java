@@ -8,6 +8,7 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
+import com.anok.model.EventStatus;
 
 public class EventResponse {
 
@@ -23,15 +24,24 @@ public class EventResponse {
     private LocalDateTime eventDateTime;
     private String venueName;
     private String venueAddress;
+    private String venueZipCode;
+    private String venueState;
+    private String venueCountry;
+    private String venueCity;
     private String about;
     private Integer capacity;
     private String ageRestriction;
     private Boolean allAges;
     private Boolean alcohol;
+    private EventStatus status;
+    private UUID selectedVenueId;
     private List<String> genres = new ArrayList<>();
     private List<PerformerResponse> performers = new ArrayList<>();
     private UUID ownerId;
     private String ownerName;
+    private String ownerEmail;
+    private String submittedByUser;
+    private String adminNotes;
 
     public UUID getId() {
         return id;
@@ -121,6 +131,38 @@ public class EventResponse {
         this.venueAddress = venueAddress;
     }
 
+    public String getVenueZipCode() {
+        return venueZipCode;
+    }
+
+    public void setVenueZipCode(String venueZipCode) {
+        this.venueZipCode = venueZipCode;
+    }
+
+    public String getVenueState() {
+        return venueState;
+    }
+
+    public void setVenueState(String venueState) {
+        this.venueState = venueState;
+    }
+
+    public String getVenueCountry() {
+        return venueCountry;
+    }
+
+    public void setVenueCountry(String venueCountry) {
+        this.venueCountry = venueCountry;
+    }
+
+    public String getVenueCity() {
+        return venueCity;
+    }
+
+    public void setVenueCity(String venueCity) {
+        this.venueCity = venueCity;
+    }
+
     public String getAbout() {
         return about;
     }
@@ -161,6 +203,22 @@ public class EventResponse {
         this.alcohol = alcohol;
     }
 
+    public UUID getSelectedVenueId() {
+        return selectedVenueId;
+    }
+
+    public void setSelectedVenueId(UUID selectedVenueId) {
+        this.selectedVenueId = selectedVenueId;
+    }
+
+    public EventStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(EventStatus status) {
+        this.status = status;
+    }
+
     public List<String> getGenres() {
         return genres;
     }
@@ -193,11 +251,36 @@ public class EventResponse {
         this.ownerName = ownerName;
     }
 
+    public String getOwnerEmail() {
+        return ownerEmail;
+    }
+
+    public void setOwnerEmail(String ownerEmail) {
+        this.ownerEmail = ownerEmail;
+    }
+
+    public String getSubmittedByUser() {
+        return submittedByUser;
+    }
+
+    public void setSubmittedByUser(String submittedByUser) {
+        this.submittedByUser = submittedByUser;
+    }
+
+    public String getAdminNotes() {
+        return adminNotes;
+    }
+
+    public void setAdminNotes(String adminNotes) {
+        this.adminNotes = adminNotes;
+    }
+
     public static class PerformerResponse {
         private UUID id;
         private String performerName;
         private String genre1;
         private String genre2;
+        private String genre3;
         private String performerLink;
 
         public UUID getId() {
@@ -230,6 +313,14 @@ public class EventResponse {
 
         public void setGenre2(String genre2) {
             this.genre2 = genre2;
+        }
+
+        public String getGenre3() {
+            return genre3;
+        }
+
+        public void setGenre3(String genre3) {
+            this.genre3 = genre3;
         }
 
         public String getPerformerLink() {

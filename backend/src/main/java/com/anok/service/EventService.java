@@ -2,17 +2,29 @@ package com.anok.service;
 
 import com.anok.dto.EventRequest;
 import com.anok.dto.EventResponse;
+import com.anok.dto.PageResponse;
 import com.anok.exception.ResourceNotFoundException;
+import com.anok.exception.ValidationException;
 import com.anok.model.Event;
 import com.anok.model.EventGenre;
 import com.anok.model.EventPerformer;
+import com.anok.model.EventStatus;
 import com.anok.model.User;
+import com.anok.model.Venue;
 import com.anok.repository.EventRepository;
+import com.anok.repository.VenueRepository;
 import com.anok.repository.UserRepository;
+import com.anok.validation.GenreCatalog;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
@@ -24,64 +36,349 @@ public class EventService {
 
     private final EventRepository eventRepository;
     private final UserRepository userRepository;
+    private final VenueRepository venueRepository;
     private final S3Service s3Service;
+    private final NotificationService notificationService;
 
-    public EventService(EventRepository eventRepository, UserRepository userRepository, S3Service s3Service) {
+    public EventService(EventRepository eventRepository, UserRepository userRepository, VenueRepository venueRepository, S3Service s3Service, NotificationService notificationService) {
         this.eventRepository = eventRepository;
         this.userRepository = userRepository;
+        this.venueRepository = venueRepository;
         this.s3Service = s3Service;
+        this.notificationService = notificationService;
     }
 
+    @Transactional
     public EventResponse createEvent(EventRequest request, String ownerEmail) {
         User owner = userRepository.findByEmailNormalized(ownerEmail.toLowerCase())
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
+        Event event = new Event();
+        event.setOwner(owner);
+        applyEventRequest(event, request, true);
+        event.setStatus(EventStatus.PENDING_REVIEW);
+        event.setLive(false);
+
+        Event saved = eventRepository.save(event);
+        notificationService.notifyUsersByRoles(
+                java.util.List.of("ROLE_SUPERUSER", "ROLE_ADMIN"),
+                "New event pending review",
+                "A new event is awaiting admin review: " + saved.getTitle(),
+                com.anok.model.NotificationType.ADMIN_ALERT
+        );
+        return toResponse(saved);
+    }
+
+    @Transactional
+    public EventResponse updateEvent(UUID eventId, EventRequest request, String ownerEmail) {
+        Event event = eventRepository.findByIdAndOwner_EmailNormalized(eventId, ownerEmail.toLowerCase())
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found or not owned by user"));
+        if (event.getStatus() == EventStatus.DELETED) {
+            throw new ValidationException("Event has been deleted");
+        }
+        EventStatus previousStatus = event.getStatus();
+        // Any edit triggers re-review
+        applyEventRequest(event, request, false);
+        event.setStatus(EventStatus.PENDING_REVIEW);
+        event.setLive(false);
+        event.setApprovedAt(null);
+        event.setApprovedBy(null);
+        event.setDisabledAt(null);
+        event.setDisabledBy(null);
+        Event saved = eventRepository.save(event);
+        if (previousStatus == EventStatus.DISABLED) {
+            notificationService.notifyUsersByRoles(
+                    java.util.List.of("ROLE_SUPERUSER", "ROLE_ADMIN"),
+                    "Event changes submitted",
+                    "Updated event ready for review: " + saved.getTitle(),
+                    com.anok.model.NotificationType.ADMIN_ALERT
+            );
+        }
+        return toResponse(saved);
+    }
+
+    public List<EventResponse> listUserEvents(String ownerEmail) {
+        String normalizedEmail = ownerEmail.toLowerCase();
+        return eventRepository.findAllByOwner_EmailNormalizedOrderByEventDateTimeDesc(normalizedEmail)
+                .stream()
+                .filter(event -> event.getStatus() != EventStatus.DELETED)
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public EventResponse updateLiveStatus(UUID eventId, Boolean isLive, String ownerEmail) {
+        Event event = eventRepository.findByIdAndOwner_EmailNormalized(eventId, ownerEmail.toLowerCase())
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found or not owned by user"));
+        if (event.getStatus() != EventStatus.APPROVED) {
+            throw new IllegalStateException("Event must be approved before toggling live state");
+        }
+        event.setLive(Boolean.TRUE.equals(isLive));
+        Event saved = eventRepository.save(event);
+        return toResponse(saved);
+    }
+
+    public List<EventResponse> listUpcomingEvents() {
+        // Use UTC date and include a 1-day grace window to avoid timezone cutoffs for "today"
+        LocalDate utcToday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
+        return eventRepository.findAllByEventDateGreaterThanEqualAndStatusAndIsLiveTrueOrderByEventDateTimeAsc(utcToday, EventStatus.APPROVED)
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+    }
+
+    public PageResponse<EventResponse> listUpcomingEvents(int page, int size) {
+        // Use UTC date and include a 1-day grace window to avoid timezone cutoffs for "today"
+        LocalDate utcToday = LocalDate.now(ZoneOffset.UTC).minusDays(1);
+        Pageable pageable = PageRequest.of(page, size);
+        Page<Event> eventPage = eventRepository.findAllByEventDateGreaterThanEqualAndStatusAndIsLiveTrueOrderByEventDateTimeAsc(utcToday, EventStatus.APPROVED, pageable);
+        List<EventResponse> content = eventPage.getContent()
+                .stream()
+                .map(this::toResponse)
+                .collect(Collectors.toList());
+
+        PageResponse<EventResponse> response = new PageResponse<>();
+        response.setContent(content);
+        response.setPage(eventPage.getNumber());
+        response.setSize(eventPage.getSize());
+        response.setTotalElements(eventPage.getTotalElements());
+        response.setTotalPages(eventPage.getTotalPages());
+        response.setHasNext(eventPage.hasNext());
+        response.setHasPrevious(eventPage.hasPrevious());
+        return response;
+    }
+
+    public EventResponse getEvent(UUID id, String viewerEmail) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        if (viewerEmail != null && event.getOwner() != null &&
+                viewerEmail.equalsIgnoreCase(event.getOwner().getEmailNormalized())) {
+            EventResponse response = toResponsePublic(event);
+            response.setAdminNotes(event.getAdminNotes());
+            return response;
+        }
+        return toResponse(event);
+    }
+
+    public EventResponse getEventAdmin(UUID id) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        return toResponseAdmin(event);
+    }
+
+    public List<EventResponse> findByStatus(EventStatus status) {
+        return eventRepository.findAllByStatusOrderByCreatedAtAsc(status)
+                .stream()
+                .map(this::toResponseAdmin)
+                .collect(Collectors.toList());
+    }
+
+    public List<EventResponse> findAllAdmin() {
+        return eventRepository.findAllByOrderByCreatedAtDesc()
+                .stream()
+                .map(this::toResponseAdmin)
+                .collect(Collectors.toList());
+    }
+
+    @Transactional
+    public EventResponse approve(UUID id, String adminEmail) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        if (event.getStatus() == EventStatus.DELETED) {
+            throw new ValidationException("Event has been deleted");
+        }
+        event.setStatus(EventStatus.APPROVED);
+        event.setLive(true);
+        event.setApprovedAt(LocalDateTime.now());
+        event.setApprovedBy(resolveAdminId(adminEmail));
+        event.setDisabledAt(null);
+        event.setDisabledBy(null);
+        event.setDeletedAt(null);
+        event.setDeletedBy(null);
+        if (event.getSelectedVenue() != null) {
+            venueRepository.incrementUsage(event.getSelectedVenue().getId());
+        }
+        Event saved = eventRepository.save(event);
+        if (event.getOwner() != null) {
+            notificationService.createNotification(
+                    event.getOwner().getId(),
+                    "Event approved",
+                    "Your event \"" + event.getTitle() + "\" was approved.",
+                    com.anok.model.NotificationType.EVENT_UPDATE
+            );
+        }
+        return toResponseAdmin(saved);
+    }
+
+    @Transactional
+    public EventResponse disable(UUID id, String adminEmail) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        if (event.getStatus() == EventStatus.DELETED) {
+            throw new ValidationException("Event has been deleted");
+        }
+        event.setStatus(EventStatus.DISABLED);
+        event.setLive(false);
+        event.setDisabledAt(LocalDateTime.now());
+        event.setDisabledBy(resolveAdminId(adminEmail));
+        Event saved = eventRepository.save(event);
+        if (event.getOwner() != null) {
+            notificationService.createNotification(
+                    event.getOwner().getId(),
+                    "Event disabled",
+                    "Your event \"" + event.getTitle() + "\" was disabled by an admin.",
+                    com.anok.model.NotificationType.WARNING,
+                    "/events/" + event.getId() + "/edit"
+            );
+        }
+        return toResponseAdmin(saved);
+    }
+
+    @Transactional
+    public EventResponse reject(UUID id, String adminEmail) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        if (event.getStatus() == EventStatus.DELETED) {
+            throw new ValidationException("Event has been deleted");
+        }
+        event.setStatus(EventStatus.DISABLED);
+        event.setLive(false);
+        event.setDisabledAt(LocalDateTime.now());
+        event.setDisabledBy(resolveAdminId(adminEmail));
+        Event saved = eventRepository.save(event);
+        if (event.getOwner() != null) {
+            notificationService.createNotification(
+                    event.getOwner().getId(),
+                    "Event rejected",
+                    "Your event \"" + event.getTitle() + "\" was rejected by an admin.",
+                    com.anok.model.NotificationType.WARNING,
+                    "/events/" + event.getId() + "/edit"
+            );
+        }
+        return toResponseAdmin(saved);
+    }
+
+    @Transactional
+    public EventResponse delete(UUID id, String adminEmail, String adminNotes) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        String trimmedNotes = adminNotes == null ? null : adminNotes.trim();
+        if (trimmedNotes == null || trimmedNotes.isEmpty()) {
+            throw new ValidationException("adminNotes", "Delete reason is required");
+        }
+        event.setStatus(EventStatus.DELETED);
+        event.setLive(false);
+        event.setDeletedAt(LocalDateTime.now());
+        event.setDeletedBy(resolveAdminId(adminEmail));
+        event.setAdminNotes(trimmedNotes);
+        Event saved = eventRepository.save(event);
+        if (event.getOwner() != null) {
+            String message = "Your event \"" + event.getTitle() + "\" was deleted by an admin. Reason: " + trimmedNotes;
+            notificationService.createNotification(
+                    event.getOwner().getId(),
+                    "Event deleted",
+                    message,
+                    com.anok.model.NotificationType.WARNING
+            );
+        }
+        return toResponseAdmin(saved);
+    }
+
+    @Transactional
+    public EventResponse requestChanges(UUID id, String adminEmail, String adminNotes) {
+        Event event = eventRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
+        if (event.getStatus() == EventStatus.DELETED) {
+            throw new ValidationException("Event has been deleted");
+        }
+        String trimmedNotes = adminNotes == null ? null : adminNotes.trim();
+        if (trimmedNotes != null && trimmedNotes.isEmpty()) {
+            trimmedNotes = null;
+        }
+        event.setStatus(EventStatus.DISABLED);
+        event.setLive(false);
+        event.setAdminNotes(trimmedNotes);
+        event.setDisabledAt(LocalDateTime.now());
+        event.setDisabledBy(resolveAdminId(adminEmail));
+        Event saved = eventRepository.save(event);
+        if (event.getOwner() != null) {
+            String message = trimmedNotes != null
+                    ? trimmedNotes
+                    : "An admin requested changes for your event \"" + event.getTitle() + "\".";
+            notificationService.createNotification(
+                    event.getOwner().getId(),
+                    "Changes requested on your event",
+                    message,
+                    com.anok.model.NotificationType.EVENT_UPDATE,
+                    "/events/" + event.getId() + "/edit"
+            );
+        }
+        return toResponseAdmin(saved);
+    }
+
+    private void applyEventRequest(Event event, EventRequest request, boolean isCreate) {
+        validateRequest(request);
         LocalTime computedEndTime = request.getEndTime();
         if (computedEndTime == null && request.getStartTime() != null && request.getEventLengthHours() != null) {
             computedEndTime = request.getStartTime().plusHours(request.getEventLengthHours());
         }
 
-        Event event = new Event();
-        event.setOwner(owner);
         event.setTitle(request.getTitle().trim());
-        event.setDescription(request.getAbout().trim());
-        event.setAbout(request.getAbout().trim());
+        String trimmedAbout = request.getAbout() == null ? "" : request.getAbout().trim();
+        event.setDescription(trimmedAbout);
+        event.setAbout(trimmedAbout);
         event.setEventDate(request.getEventDate());
         event.setStartTime(request.getStartTime());
-        event.setEventLengthHours(request.getEventLengthHours());
+        event.setEventLengthHours(request.getEventLengthHours() == null ? 0 : request.getEventLengthHours());
         event.setEndTime(computedEndTime);
         event.setEventDateTime(request.getEventDate().atTime(request.getStartTime()));
         String flyer = request.getFlyerUrl();
         event.setFlyerUrl(flyer == null ? "" : flyer.trim());
-        event.setLive(request.getLive());
-        event.setVenueName(request.getVenueName().trim());
-        event.setVenueAddress(request.getVenueAddress().trim());
+        if (isCreate) {
+            event.setLive(false);
+            event.setStatus(EventStatus.PENDING_REVIEW);
+        } else {
+            event.setLive(Boolean.TRUE.equals(request.getLive()));
+        }
+        // Only apply venue details for new venues. If selectedVenueId is present, keep existing event fields unchanged on update.
+        if (request.getSelectedVenueId() == null || event.getId() == null) {
+            if (request.getVenueName() != null) event.setVenueName(request.getVenueName().trim());
+            if (request.getVenueAddress() != null) event.setVenueAddress(request.getVenueAddress().trim());
+            if (request.getVenueZipCode() != null) event.setVenueZipCode(request.getVenueZipCode().trim());
+            if (request.getVenueState() != null) event.setVenueState(request.getVenueState().trim());
+            if (request.getVenueCountry() != null) event.setVenueCountry(request.getVenueCountry().trim());
+            if (request.getVenueCity() != null) event.setVenueCity(request.getVenueCity().trim());
+        }
+        if (request.getSelectedVenueId() != null) {
+            Venue venue = venueRepository.findById(request.getSelectedVenueId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Selected venue not found"));
+            event.setSelectedVenue(venue);
+            applyVenueDefaults(event, venue);
+        } else if (isCreate) {
+            Venue venue = resolveVenueFromRequest(request);
+            event.setSelectedVenue(venue);
+            if (venue != null) {
+                applyVenueDefaults(event, venue);
+            }
+        } else {
+            event.setSelectedVenue(null);
+        }
         event.setCapacity(request.getCapacity());
         event.setAllAges(request.getAllAges());
         event.setAlcohol(request.getAlcohol());
         event.setAgeRestriction(Boolean.TRUE.equals(request.getAllAges()) ? "ALL" : "18+");
         applyGenres(event, request.getGenres());
         applyPerformers(event, request.getPerformers());
-
-        Event saved = eventRepository.save(event);
-        return toResponse(saved);
-    }
-
-    public List<EventResponse> listUpcomingEvents() {
-        LocalDateTime now = LocalDateTime.now();
-        return eventRepository.findAllByEventDateTimeAfterOrderByEventDateTimeAsc(now)
-                .stream()
-                .map(this::toResponse)
-                .collect(Collectors.toList());
-    }
-
-    public EventResponse getEvent(UUID id) {
-        Event event = eventRepository.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Event not found"));
-        return toResponse(event);
+        if (request.getEventDate() != null && request.getStartTime() != null) {
+            event.setEventDateTime(request.getEventDate().atTime(request.getStartTime()));
+        }
     }
 
     private EventResponse toResponse(Event event) {
+        return toResponsePublic(event);
+    }
+
+    public EventResponse toResponsePublic(Event event) {
         EventResponse response = new EventResponse();
         response.setId(event.getId());
         response.setTitle(event.getTitle());
@@ -94,11 +391,19 @@ public class EventService {
         response.setEventDateTime(event.getEventDateTime());
         response.setVenueName(event.getVenueName());
         response.setVenueAddress(event.getVenueAddress());
+        response.setVenueZipCode(event.getVenueZipCode());
+        response.setVenueState(event.getVenueState());
+        response.setVenueCountry(event.getVenueCountry());
+        response.setVenueCity(event.getVenueCity());
         response.setAbout(event.getAbout());
         response.setCapacity(event.getCapacity());
         response.setAllAges(event.getAllAges());
         response.setAlcohol(event.getAlcohol());
         response.setAgeRestriction(event.getAgeRestriction());
+        if (event.getSelectedVenue() != null) {
+            response.setSelectedVenueId(event.getSelectedVenue().getId());
+        }
+        response.setStatus(event.getStatus());
         if (event.getGenres() != null) {
             List<String> genreLabels = event.getGenres().stream()
                     .sorted(Comparator.comparing(EventGenre::getOrderIndex))
@@ -114,6 +419,7 @@ public class EventService {
                         dto.setPerformerName(performer.getPerformerName());
                         dto.setGenre1(performer.getGenre1());
                         dto.setGenre2(performer.getGenre2());
+                        dto.setGenre3(performer.getGenre3());
                         dto.setPerformerLink(performer.getPerformerLink());
                         return dto;
                     })
@@ -125,6 +431,85 @@ public class EventService {
             response.setOwnerName(event.getOwner().getFullName());
         }
         return response;
+    }
+
+    private EventResponse toResponseAdmin(Event event) {
+        EventResponse response = toResponsePublic(event);
+        response.setAdminNotes(event.getAdminNotes());
+        if (event.getOwner() != null) {
+            response.setOwnerEmail(event.getOwner().getEmail());
+            String submittedBy = event.getOwner().getFullName();
+            if (submittedBy == null || submittedBy.trim().isEmpty()) {
+                submittedBy = event.getOwner().getEmail();
+            }
+            response.setSubmittedByUser(submittedBy);
+        }
+        return response;
+    }
+
+    private UUID resolveAdminId(String adminEmail) {
+        if (adminEmail == null) {
+            return null;
+        }
+        return userRepository.findByEmailNormalized(adminEmail.toLowerCase())
+                .map(User::getId)
+                .orElse(null);
+    }
+
+    private void validateRequest(EventRequest request) {
+        if (request == null) {
+            throw new ValidationException("Invalid event request");
+        }
+        if (request.getTitle() != null && request.getTitle().trim().isEmpty()) {
+            throw new ValidationException("title", "Title cannot be empty");
+        }
+        if (request.getEventDate() != null && request.getEventDate().isBefore(LocalDate.now())) {
+            throw new ValidationException("Event date cannot be in the past");
+        }
+        if (request.getEventLengthHours() != null && request.getEventLengthHours() < 1) {
+            throw new ValidationException("Event must last at least 1 hour");
+        }
+        if (request.getEventDate() != null && request.getStartTime() != null) {
+            if (request.getEventDate().isEqual(LocalDate.now()) && request.getStartTime().isBefore(LocalTime.now())) {
+                throw new ValidationException("startTime", "Start time cannot be earlier than the current time");
+            }
+            LocalTime computedEnd = request.getEndTime();
+            if (computedEnd == null && request.getEventLengthHours() != null) {
+                computedEnd = request.getStartTime().plusHours(request.getEventLengthHours());
+            }
+            // End times that wrap past midnight are allowed; duration is informational.
+        }
+        if (request.getSelectedVenueId() == null) {
+            if (isBlank(request.getVenueName())) {
+                throw new ValidationException("venueName", "Venue name is required");
+            }
+            if (isBlank(request.getVenueAddress())) {
+                throw new ValidationException("venueAddress", "Venue address is required");
+            }
+            if (isBlank(request.getVenueCity())) {
+                throw new ValidationException("venueCity", "Venue city is required");
+            }
+            if (isBlank(request.getVenueState())) {
+                throw new ValidationException("venueState", "Venue state is required");
+            }
+            if (isBlank(request.getVenueCountry())) {
+                throw new ValidationException("venueCountry", "Venue country is required");
+            }
+            if (isBlank(request.getVenueZipCode())) {
+                throw new ValidationException("venueZipCode", "Postal code is required");
+            }
+            if (!request.getVenueZipCode().trim().matches("\\d{3,12}")) {
+                throw new ValidationException("venueZipCode", "Postal code must be 3-12 digits");
+            }
+        }
+        if (request.getGenres() == null || request.getGenres().isEmpty()) {
+            throw new ValidationException("genres", "At least one genre is required");
+        }
+        for (String genre : request.getGenres()) {
+            if (!GenreCatalog.isAllowed(genre)) {
+                throw new ValidationException("genres", "Invalid genre: " + genre);
+            }
+        }
     }
 
     private void applyGenres(Event event, List<String> genres) {
@@ -140,6 +525,9 @@ public class EventService {
             }
             label = label.trim();
             if (label.isEmpty()) {
+                continue;
+            }
+            if (!GenreCatalog.isAllowed(label)) {
                 continue;
             }
             EventGenre genre = new EventGenre();
@@ -170,6 +558,7 @@ public class EventService {
             performer.setPerformerName(performerName.trim());
             performer.setGenre1(trimToNull(performerRequest.getGenre1()));
             performer.setGenre2(trimToNull(performerRequest.getGenre2()));
+            performer.setGenre3(trimToNull(performerRequest.getGenre3()));
             performer.setPerformerLink(trimToNull(performerRequest.getPerformerLink()));
             eventPerformers.add(performer);
         }
@@ -182,5 +571,72 @@ public class EventService {
         }
         String trimmed = value.trim();
         return trimmed.isEmpty() ? null : trimmed;
+    }
+
+    private Venue resolveVenueFromRequest(EventRequest request) {
+        String name = trimToNull(request.getVenueName());
+        if (name == null) {
+            return null;
+        }
+        String city = trimToNull(request.getVenueCity());
+        String state = trimToNull(request.getVenueState());
+        String country = trimToNull(request.getVenueCountry());
+        String address = trimToNull(request.getVenueAddress());
+        String postalCode = trimToNull(request.getVenueZipCode());
+
+        java.util.Optional<Venue> exactMatch = java.util.Optional.empty();
+        if (city != null && state != null && country != null) {
+            exactMatch = venueRepository.findByNameIgnoreCaseAndCityIgnoreCaseAndStateIgnoreCaseAndCountryIgnoreCase(
+                    name,
+                    city,
+                    state,
+                    country
+            );
+        }
+
+        return exactMatch
+                .or(() -> venueRepository.findFirstByNameIgnoreCaseOrderByUsageCountDesc(name))
+                .orElseGet(() -> createVenueFromRequest(name, city, state, country, address, postalCode, request.getCapacity()));
+    }
+
+    private Venue createVenueFromRequest(String name, String city, String state, String country, String address, String postalCode, Integer capacity) {
+        if (city == null) {
+            throw new ValidationException("venueCity", "Venue city is required for new venues");
+        }
+        if (state == null) {
+            throw new ValidationException("venueState", "Venue state is required for new venues");
+        }
+        if (country == null) {
+            throw new ValidationException("venueCountry", "Venue country is required for new venues");
+        }
+        if (address == null) {
+            throw new ValidationException("venueAddress", "Venue address is required for new venues");
+        }
+        if (postalCode == null) {
+            throw new ValidationException("venueZipCode", "Postal code is required for new venues");
+        }
+        Venue venue = new Venue();
+        venue.setName(name);
+        venue.setCity(city);
+        venue.setState(state);
+        venue.setCountry(country);
+        venue.setAddress(address);
+        venue.setPostalCode(postalCode);
+        venue.setCapacity(capacity);
+        return venueRepository.save(venue);
+    }
+
+    private void applyVenueDefaults(Event event, Venue venue) {
+        if (isBlank(event.getVenueName())) event.setVenueName(venue.getName());
+        if (isBlank(event.getVenueAddress())) event.setVenueAddress(venue.getAddress());
+        if (isBlank(event.getVenueZipCode())) event.setVenueZipCode(venue.getPostalCode());
+        if (isBlank(event.getVenueCity())) event.setVenueCity(venue.getCity());
+        if (isBlank(event.getVenueState())) event.setVenueState(venue.getState());
+        if (isBlank(event.getVenueCountry())) event.setVenueCountry(venue.getCountry());
+        if (event.getCapacity() == null) event.setCapacity(venue.getCapacity());
+    }
+
+    private boolean isBlank(String value) {
+        return value == null || value.trim().isEmpty();
     }
 }

@@ -9,22 +9,27 @@ import java.time.LocalTime;
 import java.util.ArrayList;
 import java.util.List;
 
+import com.anok.validation.AllowedGenres;
+import com.anok.validation.EventTimingValid;
+import java.util.UUID;
+
+@EventTimingValid
 public class EventRequest {
 
     @NotBlank
-    @Size(max = 255)
+    @Size(min = 3, max = 100)
     private String title;
 
     private String flyerUrl;
 
     @NotNull
+    @FutureOrPresent(message = "Event date cannot be in the past")
     private LocalDate eventDate;
 
     @NotNull
     private LocalTime startTime;
 
-    @NotNull
-    @Min(0)
+    @Min(value = 1, message = "Event must last at least 1 hour")
     private Integer eventLengthHours;
 
     private LocalTime endTime;
@@ -33,15 +38,27 @@ public class EventRequest {
     @JsonProperty("isLive")
     private Boolean isLive;
 
-    @NotBlank
-    @Size(max = 255)
+    @Size(min = 0, max = 150)
     private String venueName;
 
-    @NotBlank
+    @Size(min = 0, max = 200)
     private String venueAddress;
 
-    @NotBlank
-    @Size(max = 4000)
+    @Size(min = 0, max = 20)
+    private String venueZipCode;
+
+    @Size(min = 0, max = 255)
+    private String venueState;
+
+    @Size(min = 0, max = 255)
+    private String venueCountry;
+
+    @Size(max = 255)
+    private String venueCity;
+
+    private UUID selectedVenueId;
+
+    @Size(max = 2000)
     private String about;
 
     @NotNull
@@ -54,7 +71,9 @@ public class EventRequest {
     @NotNull
     private Boolean alcohol;
 
-    @Size(max = 50)
+    @NotNull
+    @Size(min = 1, max = 50)
+    @AllowedGenres
     private List<@NotBlank @Size(max = 25) String> genres = new ArrayList<>();
 
     @NotEmpty
@@ -133,6 +152,46 @@ public class EventRequest {
         this.venueAddress = venueAddress;
     }
 
+    public String getVenueZipCode() {
+        return venueZipCode;
+    }
+
+    public void setVenueZipCode(String venueZipCode) {
+        this.venueZipCode = venueZipCode;
+    }
+
+    public String getVenueState() {
+        return venueState;
+    }
+
+    public void setVenueState(String venueState) {
+        this.venueState = venueState;
+    }
+
+    public String getVenueCountry() {
+        return venueCountry;
+    }
+
+    public void setVenueCountry(String venueCountry) {
+        this.venueCountry = venueCountry;
+    }
+
+    public String getVenueCity() {
+        return venueCity;
+    }
+
+    public void setVenueCity(String venueCity) {
+        this.venueCity = venueCity;
+    }
+
+    public UUID getSelectedVenueId() {
+        return selectedVenueId;
+    }
+
+    public void setSelectedVenueId(UUID selectedVenueId) {
+        this.selectedVenueId = selectedVenueId;
+    }
+
     public String getAbout() {
         return about;
     }
@@ -192,6 +251,9 @@ public class EventRequest {
         @Size(max = 100)
         private String genre2;
 
+        @Size(max = 100)
+        private String genre3;
+
         @Size(max = 1000)
         private String performerLink;
 
@@ -217,6 +279,14 @@ public class EventRequest {
 
         public void setGenre2(String genre2) {
             this.genre2 = genre2;
+        }
+
+        public String getGenre3() {
+            return genre3;
+        }
+
+        public void setGenre3(String genre3) {
+            this.genre3 = genre3;
         }
 
         public String getPerformerLink() {

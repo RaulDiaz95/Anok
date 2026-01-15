@@ -13,6 +13,7 @@ interface AuthContextType {
   isAuthenticated: boolean;
   isLoading: boolean;
   login: (credentials: LoginRequest) => Promise<void>;
+  googleLogin: (idToken: string) => Promise<void>;
   register: (data: RegisterRequest) => Promise<void>;
   logout: () => Promise<void>;
 }
@@ -44,6 +45,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     try {
       // Login returns the user directly from the response
       const userData = await authService.login(credentials);
+      setUser(userData);
+    } catch (error) {
+      setIsLoading(false);
+      throw error;
+    }
+    setIsLoading(false);
+  };
+
+  const googleLogin = async (idToken: string) => {
+    setIsLoading(true);
+    try {
+      const userData = await authService.googleLogin(idToken);
       setUser(userData);
     } catch (error) {
       setIsLoading(false);
@@ -86,6 +99,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         isAuthenticated: !!user,
         isLoading,
         login,
+        googleLogin,
         register,
         logout,
       }}

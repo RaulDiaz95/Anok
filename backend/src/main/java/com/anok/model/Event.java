@@ -42,6 +42,31 @@ public class Event {
     @Column(name = "is_live", nullable = false)
     private Boolean isLive = true;
 
+    @Enumerated(EnumType.STRING)
+    @Column(name = "status", nullable = false, length = 32)
+    private EventStatus status = EventStatus.PENDING_REVIEW;
+
+    @Column(name = "admin_notes", columnDefinition = "TEXT")
+    private String adminNotes;
+
+    @Column(name = "approved_at")
+    private LocalDateTime approvedAt;
+
+    @Column(name = "approved_by")
+    private UUID approvedBy;
+
+    @Column(name = "disabled_at")
+    private LocalDateTime disabledAt;
+
+    @Column(name = "disabled_by")
+    private UUID disabledBy;
+
+    @Column(name = "deleted_at")
+    private LocalDateTime deletedAt;
+
+    @Column(name = "deleted_by")
+    private UUID deletedBy;
+
     @Column(name = "start_time", nullable = false)
     private LocalTime startTime = LocalTime.MIDNIGHT;
 
@@ -56,6 +81,22 @@ public class Event {
 
     @Column(name = "venue_address", nullable = false, columnDefinition = "TEXT")
     private String venueAddress;
+
+    @Column(name = "venue_zip_code", nullable = false, length = 50)
+    private String venueZipCode = "";
+
+    @Column(name = "venue_state", nullable = false, length = 255)
+    private String venueState = "";
+
+    @Column(name = "venue_country", nullable = false, length = 255)
+    private String venueCountry = "";
+
+    @Column(name = "venue_city", nullable = false, length = 255)
+    private String venueCity = "";
+
+    @ManyToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "selected_venue_id")
+    private Venue selectedVenue;
 
     @Column(name = "about", nullable = false, columnDefinition = "TEXT")
     private String about = "";
@@ -161,6 +202,70 @@ public class Event {
         isLive = live;
     }
 
+    public EventStatus getStatus() {
+        return status;
+    }
+
+    public void setStatus(EventStatus status) {
+        this.status = status;
+    }
+
+    public String getAdminNotes() {
+        return adminNotes;
+    }
+
+    public void setAdminNotes(String adminNotes) {
+        this.adminNotes = adminNotes;
+    }
+
+    public LocalDateTime getApprovedAt() {
+        return approvedAt;
+    }
+
+    public void setApprovedAt(LocalDateTime approvedAt) {
+        this.approvedAt = approvedAt;
+    }
+
+    public UUID getApprovedBy() {
+        return approvedBy;
+    }
+
+    public void setApprovedBy(UUID approvedBy) {
+        this.approvedBy = approvedBy;
+    }
+
+    public LocalDateTime getDisabledAt() {
+        return disabledAt;
+    }
+
+    public void setDisabledAt(LocalDateTime disabledAt) {
+        this.disabledAt = disabledAt;
+    }
+
+    public UUID getDisabledBy() {
+        return disabledBy;
+    }
+
+    public void setDisabledBy(UUID disabledBy) {
+        this.disabledBy = disabledBy;
+    }
+
+    public LocalDateTime getDeletedAt() {
+        return deletedAt;
+    }
+
+    public void setDeletedAt(LocalDateTime deletedAt) {
+        this.deletedAt = deletedAt;
+    }
+
+    public UUID getDeletedBy() {
+        return deletedBy;
+    }
+
+    public void setDeletedBy(UUID deletedBy) {
+        this.deletedBy = deletedBy;
+    }
+
     public LocalTime getStartTime() {
         return startTime;
     }
@@ -207,6 +312,46 @@ public class Event {
 
     public void setVenueAddress(String venueAddress) {
         this.venueAddress = venueAddress;
+    }
+
+    public String getVenueZipCode() {
+        return venueZipCode;
+    }
+
+    public void setVenueZipCode(String venueZipCode) {
+        this.venueZipCode = venueZipCode;
+    }
+
+    public String getVenueState() {
+        return venueState;
+    }
+
+    public void setVenueState(String venueState) {
+        this.venueState = venueState;
+    }
+
+    public String getVenueCountry() {
+        return venueCountry;
+    }
+
+    public void setVenueCountry(String venueCountry) {
+        this.venueCountry = venueCountry;
+    }
+
+    public String getVenueCity() {
+        return venueCity;
+    }
+
+    public void setVenueCity(String venueCity) {
+        this.venueCity = venueCity;
+    }
+
+    public Venue getSelectedVenue() {
+        return selectedVenue;
+    }
+
+    public void setSelectedVenue(Venue selectedVenue) {
+        this.selectedVenue = selectedVenue;
     }
 
     public Integer getCapacity() {

@@ -1,8 +1,11 @@
+export type EventStatus = "DRAFT" | "PENDING_REVIEW" | "APPROVED" | "DISABLED" | "DELETED";
+
 export interface Performer {
   id?: string;
   performerName: string;
   genre1?: string | null;
   genre2?: string | null;
+  genre3?: string | null;
   performerLink?: string | null;
 }
 
@@ -10,43 +13,69 @@ export interface PerformerInput {
   performerName: string;
   genre1?: string;
   genre2?: string;
+  genre3?: string;
   performerLink?: string;
 }
 
 export interface Event {
   id: string;
-  flyerUrl: string;
+  flyerUrl: string | null;
   eventDate: string;
   startTime: string;
-  eventLengthHours: number;
+  eventLengthHours?: number | null;
   endTime?: string | null;
-  eventDateTime: string;        // ⬅️ FALTABA
+  eventDateTime: string;
   isLive: boolean;
-  about: string;
+  status?: EventStatus;
+  about?: string | null;
   title: string;
   venueName: string;
   venueAddress: string;
+  venueZipCode: string;
+  venueState: string;
+  venueCountry: string;
+  venueCity: string;
   capacity: number;
   ageRestriction?: string;
   allAges: boolean;
   alcohol: boolean;
   genres?: string[] | null;
   performers: Performer[];
-  ownerId?: string | null;      // ⬅️ FALTABA
-  ownerName?: string | null;    // ⬅️ FALTABA
+  ownerId?: string | null;
+  ownerName?: string | null;
+  ownerEmail?: string | null;
+  submittedByUser?: string | null;
+  adminNotes?: string | null;
+  selectedVenueId?: string | null;
+}
+
+export interface PageResponse<T> {
+  content: T[];
+  page: number;
+  size: number;
+  totalElements: number;
+  totalPages: number;
+  hasNext: boolean;
+  hasPrevious: boolean;
 }
 
 export interface CreateEventInput {
-  flyerUrl: string;
+  flyerUrl: string | null;
   eventDate: string;
   startTime: string;
-  eventLengthHours: number;
+  eventLengthHours?: number | null;
   endTime?: string | null;
   isLive: boolean;
-  about: string;
+  status?: EventStatus;
+  about?: string | null;
   title: string;
+  selectedVenueId?: string | null;
   venueName: string;
   venueAddress: string;
+  venueZipCode: string;
+  venueState: string;
+  venueCountry: string;
+  venueCity: string;
   capacity: number;
   allAges: boolean;
   alcohol: boolean;

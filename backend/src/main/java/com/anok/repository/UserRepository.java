@@ -53,4 +53,7 @@ public interface UserRepository extends JpaRepository<User, UUID> {
      */
     @Query("SELECT u FROM User u LEFT JOIN FETCH u.roles WHERE u.emailNormalized = :emailNormalized")
     Optional<User> findByEmailNormalizedWithRoles(@Param("emailNormalized") String emailNormalized);
+
+    @Query("SELECT DISTINCT u FROM User u JOIN u.roles r WHERE r.name = :roleName")
+    java.util.List<User> findAllByRoleName(@Param("roleName") String roleName);
 }

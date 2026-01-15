@@ -1,0 +1,17 @@
+export const ALLOWED_GENRES: string[] = [
+  "Rock",
+  "Pop",
+  "Hip-Hop/Rap",
+  "Classical",
+  "Jazz",
+  "Electronic",
+  "Country",
+  "Blues",
+  "Reggae",
+  "Folk",
+  "R&B/Soul",
+  "Gospel",
+  "Funk",
+  "World Music",
+  "Opera",
+];

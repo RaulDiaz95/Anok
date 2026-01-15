@@ -43,6 +43,31 @@ class AuthService {
     }
 
     const data: AuthResponse = await response.json();
+    if (data.token) {
+      localStorage.setItem("anok_access_token", data.token);
+    }
+    return data.user;
+  }
+
+  async googleLogin(idToken: string): Promise<User> {
+    const response = await fetch(`${API_URL}/google`, {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+      },
+      credentials: "include",
+      body: JSON.stringify({ idToken }),
+    });
+
+    if (!response.ok) {
+      const error = await response.text();
+      throw new Error(error || "Google login failed");
+    }
+
+    const data: AuthResponse = await response.json();
+    if (data.token) {
+      localStorage.setItem("anok_access_token", data.token);
+    }
     return data.user;
   }
 
@@ -71,6 +96,8 @@ class AuthService {
     if (!response.ok) {
       throw new Error("Logout failed");
     }
+
+    localStorage.removeItem("anok_access_token");
   }
 }
 
